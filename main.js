@@ -73,14 +73,14 @@ function populateApp() {
     vehiclePhoto.style.display = 'none'
   }
 
-  const prev = vehicle.last_mileage ?? 0
+  const prev = vehicle.current_mileage ?? 0
   prevMileageEl.textContent = prev.toLocaleString('en-GB') + ' mi'
 }
 
 // ── Validation ────────────────────────────────────────────────
 mileageInput.addEventListener('input', () => {
   const val = parseInt(mileageInput.value, 10)
-  const prev = vehicle?.last_mileage ?? 0
+  const prev = vehicle?.current_mileage ?? 0
 
   if (mileageInput.value === '') {
     clearValidation()
@@ -116,7 +116,7 @@ confirmBtn.addEventListener('click', submitMileage)
 
 async function submitMileage() {
   const val = parseInt(mileageInput.value, 10)
-  const prev = vehicle?.last_mileage ?? 0
+  const prev = vehicle?.current_mileage ?? 0
 
   if (!mileageInput.value || isNaN(val)) {
     setError('Please enter a mileage reading.')
@@ -148,10 +148,10 @@ async function submitMileage() {
     return
   }
 
-  // Update last_mileage on vehicle
+  // Update current_mileage on vehicle
   await supabase
     .from('vehicles')
-    .update({ last_mileage: val })
+    .update({ current_mileage: val })
     .eq('id', vehicle.id)
 
   // Show success

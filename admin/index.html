@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fleet Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./admin.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="site-header">
+        <div class="header-inner">
+          <div class="logo">
+            <span class="logo-icon">◈</span>
+            <span class="logo-text">FLEET<strong>ADMIN</strong></span>
+          </div>
+          <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="vehicles">Vehicles</button>
+            <button class="tab-btn" data-tab="mileage">Mileage</button>
+            <button class="tab-btn" data-tab="qr">QR Codes</button>
+          </nav>
+        </div>
+      </header>
+
+      <main class="main-content">
+
+        <!-- ── VEHICLES TAB ── -->
+        <section class="tab-panel active" id="tab-vehicles">
+          <div class="panel-header">
+            <h1>Vehicles</h1>
+            <button class="btn-primary" id="show-add-form">+ Add Vehicle</button>
+          </div>
+
+          <!-- Add vehicle form (hidden by default) -->
+          <div class="add-form-wrapper hidden" id="add-form-wrapper">
+            <form class="add-form" id="add-vehicle-form">
+              <h2>New Vehicle</h2>
+              <div class="form-row">
+                <label for="vehicle-id">Vehicle ID</label>
+                <input type="text" id="vehicle-id" placeholder="e.g. V001" required />
+              </div>
+              <div class="form-row">
+                <label for="vehicle-name">Vehicle Name</label>
+                <input type="text" id="vehicle-name" placeholder="e.g. Ford Transit — Plate AB12 CDE" required />
+              </div>
+              <div class="form-row">
+                <label for="vehicle-mileage">Starting Mileage</label>
+                <input type="number" id="vehicle-mileage" placeholder="e.g. 12500" min="0" required />
+              </div>
+              <div class="form-row">
+                <label for="vehicle-photo">Photo</label>
+                <div class="file-drop" id="file-drop">
+                  <input type="file" id="vehicle-photo" accept="image/*" />
+                  <span class="file-drop-label">Click or drag a photo here</span>
+                  <img class="file-preview hidden" id="file-preview" alt="preview" />
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn-ghost" id="cancel-add">Cancel</button>
+                <button type="submit" class="btn-primary" id="submit-vehicle">Save Vehicle</button>
+              </div>
+              <p class="form-status hidden" id="form-status"></p>
+            </form>
+          </div>
+
+          <!-- Vehicle grid -->
+          <div class="vehicle-grid" id="vehicle-grid">
+            <div class="loading-state">Loading vehicles…</div>
+          </div>
+        </section>
+
+        <!-- ── MILEAGE TAB ── -->
+        <section class="tab-panel" id="tab-mileage">
+          <div class="panel-header">
+            <h1>Mileage</h1>
+          </div>
+          <div class="mileage-list" id="mileage-list">
+            <div class="loading-state">Loading mileage data…</div>
+          </div>
+        </section>
+
+        <!-- ── QR CODES TAB ── -->
+        <section class="tab-panel" id="tab-qr">
+          <div class="panel-header">
+            <h1>QR Codes</h1>
+            <button class="btn-primary" onclick="window.print()">⎙ Print All</button>
+          </div>
+          <p class="qr-hint">Each QR code links directly to the mileage entry page for that vehicle. Print and affix inside the vehicle.</p>
+          <div class="qr-grid" id="qr-grid">
+            <div class="loading-state">Generating QR codes…</div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- History modal -->
+    <div class="modal-overlay hidden" id="history-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="modal-title">Mileage History</h2>
+          <button class="modal-close" id="modal-close">✕</button>
+        </div>
+        <div class="modal-body" id="modal-body">
+          <div class="loading-state">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete confirm modal -->
+    <div class="modal-overlay hidden" id="delete-modal">
+      <div class="modal modal--sm">
+        <div class="modal-header">
+          <h2>Delete Vehicle?</h2>
+          <button class="modal-close" id="delete-modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p id="delete-confirm-text">This will permanently remove the vehicle and all its mileage history.</p>
+          <div class="form-actions" style="margin-top:1.5rem">
+            <button class="btn-ghost" id="delete-cancel">Cancel</button>
+            <button class="btn-danger" id="delete-confirm">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./admin.js"></script>
+  </body>
+</html>
