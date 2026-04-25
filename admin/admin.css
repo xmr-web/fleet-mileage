@@ -458,3 +458,78 @@ body {
     page-break-inside: avoid;
   }
 }
+/* ── Mobile Responsive ── */
+@media (max-width: 768px) {
+  .header-inner {
+    flex-direction: column;
+    height: auto;
+    padding: 0.75rem 1rem;
+    gap: 0.5rem;
+  }
+
+  .tab-nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .tab-btn {
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem 0.25rem;
+    font-size: 0.7rem;
+  }
+
+  .main-content {
+    padding: 1rem;
+  }
+
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  /* Vehicle grid — single column on mobile */
+  .vehicle-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Mileage rows — stack instead of grid */
+  .mileage-list-header {
+    display: none;
+  }
+
+  .mileage-row {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+
+  .mileage-row-miles {
+    text-align: left;
+  }
+
+  .mileage-row-action {
+    justify-content: flex-start;
+  }
+
+  /* QR grid — 2 columns on mobile */
+  .qr-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Form — stack label above input */
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+
+  .form-row label {
+    padding-top: 0;
+  }
+
+  /* Modal full screen on mobile */
+  .modal {
+    max-height: 95vh;
+    margin: 0;
+  }
+}
