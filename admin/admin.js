@@ -62,7 +62,7 @@ async function loadAll() {
   // Resolve signed URLs for all vehicles with a photo
   vehicles = await Promise.all(
     data.map(async v => {
-      if (v.photo_url) {
+      if (v.image_url) {
         const { data: signed } = await supabase
           .storage
           .from('vehicle-images')
@@ -269,7 +269,7 @@ function initVehicleForm() {
       // 2. Insert vehicle row
       const { error: insertError } = await supabase
         .from('vehicles')
-        .insert({ id, name, photo_url: photoPath, current_mileage: mileage });
+        .insert({ id, name, image_url: photoPath, current_mileage: mileage });
 
       if (insertError) throw insertError;
 
@@ -379,8 +379,8 @@ async function deleteVehicle(vehicleId) {
   const vehicle = vehicles.find(v => v.id === vehicleId);
 
   // Delete photo from storage if it exists
-  if (vehicle?.photo_url) {
-    await supabase.storage.from('vehicle-images').remove([vehicle.photo_url]);
+  if (vehicle?.image_url) {
+    await supabase.storage.from('vehicle-images').remove([vehicle.image_url]);
   }
 
   // Delete mileage log entries
