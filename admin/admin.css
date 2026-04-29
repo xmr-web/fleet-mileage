@@ -55,6 +55,28 @@ body {
 .logo-icon { color: var(--accent); font-size: 1.2rem; }
 .logo-text strong { color: var(--accent); }
 
+/* ── Header user / logout ── */
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+.user-email {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+.btn-logout {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.85rem;
+  white-space: nowrap;
+}
+
 /* ── Tab Nav ── */
 .tab-nav {
   display: flex;

@@ -69,12 +69,13 @@ When planning each new stage, review the schema before writing any code.
 - **Fonts:** Barlow + Barlow Condensed (driver app), Syne + DM Mono (admin)
 - **Packages:** `@supabase/supabase-js`, `qrcode-generator`, `vite`
 
-### Future stack direction (agreed 2026-04-28)
+### Future stack direction (updated 2026-04-29)
 - The driver-facing screens (mileage entry, inspection forms, fault reporting) will **stay as vanilla JS** — they work perfectly, are fast, and are accessed via QR code with no installation needed
-- The **admin/mechanic dashboard** will eventually be rebuilt in **React + Next.js + Tailwind + shadcn/ui** as it grows in complexity across Stage 2–4
-- This rebuild will happen **after** Martin has learned React basics separately — not by rewriting the existing working app
+- The **admin/mechanic dashboard** will be rebuilt in **Vue 3 + Vite** as it grows in complexity across Stage 2–4
+- Vue was chosen over React after deliberate evaluation — it has a gentler learning curve, its Single File Component structure (HTML, JS, and CSS in one file) is more intuitive for someone coming from a structured programming background, and it is the right fit for a small internal dashboard with no need for React's extra complexity
+- Next.js was ruled out — it adds server-side rendering complexity that an internal admin tool simply doesn't need
+- Low-code tools (Retool, Budibase, Appsmith) were evaluated and rejected: Retool has vendor lock-in risk as a closed-source commercial product; Budibase has no meaningful free tier; Appsmith requires too much JavaScript for the benefit it provides
 - Supabase backend is framework-agnostic and requires no changes regardless of frontend choice
-- React learning path: react.dev/learn tutorial first → Scrimba free React course → build a single VehicleCard component against real Supabase data as a practice exercise → then tackle admin rebuild
 
 ---
 
@@ -253,40 +254,48 @@ Photo uploads go to Supabase Storage bucket `vehicle-images`. The filename saved
 
 ---
 
-## Current status (as of 2026-04-28)
+## Current status (as of 2026-04-29)
 
 - Driver app: working ✓
 - Admin dashboard: working ✓
 - 32 vehicles in the database ✓
 - Full migration script written and ready to run ✓
-- React learning path agreed — not yet started
+- Technology stack decisions finalised ✓ (Vue 3 + Vite for admin rebuild, Supabase confirmed as the right backend choice)
+- Migration run ✓ — all tables and `vehicle_status` view created in Supabase
+- RLS (Row Level Security) enabled and policies applied to all tables ✓
+  - `vehicles`: anon SELECT (drivers need to load vehicle card), authenticated full access
+  - `mileage_log`: anon INSERT only, authenticated full access
+  - `inspections`, `cleans`, `faults`: anon INSERT only, authenticated full access
+  - `bookings`: authenticated only (no driver-facing UI yet)
+- Note: `plate` column exists on `vehicles` but is not yet populated. Be aware that anon users can SELECT vehicles — do not expose plate in the driver app query if registration data should stay private.
 
 ---
 
 ## Upcoming goals / to-do
 
-- [ ] Run the migration script in Supabase SQL Editor
+- [x] Run the migration script in Supabase SQL Editor
+- [x] Enable RLS and apply security policies to all tables
 - [ ] Fill in plate, make, model, year for all 32 vehicles
 - [ ] Create `fault-photos` storage bucket in Supabase
 - [ ] Add authentication to the admin dashboard
 - [ ] Set up Supabase Edge Function for inspection email alerts (Resend recommended for email delivery)
 - [ ] Build Stage 2 driver-facing forms: inspection checklist, deep clean checklist
-- [ ] Work through React tutorial at react.dev/learn
-- [ ] Build practice VehicleCard React component against real Supabase data
-- [ ] Plan admin dashboard rebuild in Next.js + React + Tailwind + shadcn/ui
+- [ ] Plan admin dashboard rebuild in Vue 3 + Vite (begin after migration is complete and Stage 2 driver forms are built)
 
 ---
 
-## React learning notes (added 2026-04-28)
+## Vue 3 learning notes (added 2026-04-29)
 
-Martin is learning React. Key mental model mappings for someone with a COBOL/RPG background:
+Vue 3 + Vite is the chosen framework for the admin dashboard rebuild. Key mental model mappings for someone with a COBOL/RPG background:
 
-- **Component** = a subroutine that returns HTML. Defined once, reused many times. Like a report detail-line template.
-- **Props** = parameters passed into a component. Read-only. Like passing arguments to a subroutine.
-- **State (`useState`)** = working storage that belongs to a component. When it changes, React redraws the component automatically. No manual DOM manipulation needed.
-- **`useEffect`** = code that runs when the component first appears or when something changes. This is where Supabase queries go — equivalent to OPEN/READ at the start of a program.
+- **Single File Component (SFC)** = a `.vue` file containing three clearly separated sections: `<template>` (the HTML layout), `<script>` (the logic), and `<style>` (the CSS). Like a well-structured report with a layout section, a logic section, and a formatting section — all in one place.
+- **Component** = a reusable building block, like a subroutine that returns a piece of the UI. Define it once, use it many times.
+- **Props** = parameters passed into a component from its parent. Read-only. Like passing arguments into a subroutine.
+- **Reactive data (`ref`, `reactive`)** = working storage that belongs to a component. When it changes, Vue automatically redraws the relevant part of the UI. No manual DOM manipulation needed — equivalent to a report tool that rerenders the template when the data changes.
+- **`onMounted`** = code that runs when the component first appears on screen. This is where Supabase queries go — equivalent to OPEN/READ at the start of a program.
+- **Directives** = special HTML attributes Vue provides: `v-for` loops over a list (like a DO loop in RPG), `v-if` shows/hides elements conditionally, `v-model` binds a form input to a variable two-ways.
 
-The key shift from vanilla JS: instead of manually finding and updating DOM elements when data changes, you update state and React handles the redraw. Like a report tool that rerenders the template automatically when the data changes.
+The key shift from vanilla JS: instead of manually finding and updating DOM elements when data changes, you update reactive data and Vue handles the redraw automatically.
 
 ---
 

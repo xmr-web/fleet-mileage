@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fleet Admin — Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./admin.css" />
+    <style>
+      .login-wrapper {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+      }
+      .login-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 2.5rem 2rem;
+        width: 100%;
+        max-width: 400px;
+      }
+      .login-logo {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: var(--font-head);
+        font-size: 1rem;
+        letter-spacing: 0.08em;
+        margin-bottom: 2rem;
+      }
+      .login-logo-icon { color: var(--accent); font-size: 1.2rem; }
+      .login-logo strong { color: var(--accent); }
+      .login-card h1 {
+        font-family: var(--font-head);
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+      }
+      .login-card p {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        margin-bottom: 2rem;
+        line-height: 1.6;
+      }
+      .login-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        margin-bottom: 1.25rem;
+      }
+      .login-field label {
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+      .login-field input {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-family: var(--font-mono);
+        font-size: 0.95rem;
+        padding: 0.65rem 0.85rem;
+        border-radius: var(--radius);
+        outline: none;
+        transition: border-color 0.15s;
+        width: 100%;
+      }
+      .login-field input:focus { border-color: var(--accent); }
+      .login-btn {
+        width: 100%;
+        padding: 0.75rem;
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+      }
+      .login-status {
+        margin-top: 1.25rem;
+        font-size: 0.85rem;
+        text-align: center;
+        min-height: 1.4rem;
+      }
+      .login-status.success { color: var(--accent); }
+      .login-status.error   { color: var(--danger); }
+    </style>
+  </head>
+  <body>
+    <div class="login-wrapper">
+      <div class="login-card">
+        <div class="login-logo">
+          <span class="login-logo-icon">◈</span>
+          <span>FLEET<strong>ADMIN</strong></span>
+        </div>
+        <h1>Sign in</h1>
+        <p>Enter your email address and we'll send you a secure sign-in link. No password needed.</p>
+        <div class="login-field">
+          <label for="email">Email address</label>
+          <input type="email" id="email" placeholder="you@example.com" autocomplete="email" />
+        </div>
+        <button class="btn-primary login-btn" id="send-btn">Send sign-in link</button>
+        <p class="login-status" id="login-status"></p>
+      </div>
+    </div>
+    <script type="module" src="./login.js"></script>
+  </body>
+</html>
