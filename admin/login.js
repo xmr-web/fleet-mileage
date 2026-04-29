@@ -26,6 +26,10 @@ const tokenHash = params.get('token_hash');
 const type      = params.get('type');
 
 if (tokenHash && type === 'magiclink') {
+  handleMagicLinkCallback();
+}
+
+async function handleMagicLinkCallback() {
   setStatus('Signing you in…', '');
   sendBtn.disabled = true;
 
