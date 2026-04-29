@@ -18,18 +18,27 @@ const sendBtn  = document.getElementById('send-btn');
 const emailEl  = document.getElementById('email');
 
 // ── Handle magic link callback ─────────────────────────────────────────────
-// When the user clicks the link in their email, Supabase redirects them back
-// to the site with a token_hash in the URL. We detect that and exchange it
-// for a real session, then send them to the dashboard.
-const params = new URLSearchParams(window.location.search);
-const tokenHash = params.get('token_hash');
-const type      = params.get('type');
+// Supabase can return the token in two ways depending on configuration:
+//   1. Query string: ?token_hash=...&type=magiclink
+//   2. Hash fragment: #access_token=...&type=magiclink
+// We check both.
+
+const params    = new URLSearchParams(window.location.search);
+const hashParams = new URLSearchParams(window.location.hash.slice(1)); // strip leading #
+
+const tokenHash  = params.get('token_hash');
+const accessToken = hashParams.get('access_token');
+const type       = params.get('type') || hashParams.get('type');
 
 if (tokenHash && type === 'magiclink') {
-  handleMagicLinkCallback();
+  // Query string flow
+  handleOtpCallback();
+} else if (accessToken) {
+  // Hash fragment flow — session is set automatically by Supabase, just redirect
+  handleHashCallback();
 }
 
-async function handleMagicLinkCallback() {
+async function handleOtpCallback() {
   setStatus('Signing you in…', '');
   sendBtn.disabled = true;
 
@@ -39,8 +48,22 @@ async function handleMagicLinkCallback() {
     setStatus('This link has expired or already been used. Please request a new one.', 'error');
     sendBtn.disabled = false;
   } else {
-    // Session established — go to the dashboard
     window.location.replace('/admin/');
+  }
+}
+
+async function handleHashCallback() {
+  setStatus('Signing you in…', '');
+  sendBtn.disabled = true;
+
+  // Give Supabase a moment to process the hash and establish the session
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (session) {
+    window.location.replace('/admin/');
+  } else {
+    setStatus('This link has expired or already been used. Please request a new one.', 'error');
+    sendBtn.disabled = false;
   }
 }
 
