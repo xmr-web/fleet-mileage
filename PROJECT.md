@@ -276,6 +276,27 @@ Photo uploads go to Supabase Storage bucket `vehicle-images`. The filename saved
 
 ---
 
+## Email alerts
+
+### Fault report emails (working ✓ — 2026-04-29)
+When a driver submits a fault, an email is automatically sent to the fleet mechanic (To) and admin (CC).
+
+**Stack:**
+- **Resend** — email delivery service (free tier, 3,000 emails/month)
+- **Supabase Edge Function** — `send-fault-email` (deployed at `supabase/functions/send-fault-email/index.ts`)
+- **Supabase Database Webhook** — `on_fault_inserted` — fires on INSERT to `faults` table, calls the Edge Function
+
+**Config:** Recipient addresses and Resend API key are stored in `public.app_settings` (key/value table). Update them there — no code changes or redeployment needed.
+
+**Current from address:** `onboarding@resend.dev` (Resend sandbox — emails may go to spam). To fix: verify a real domain in Resend, update the `from` field in the Edge Function, redeploy.
+
+**To redeploy the function after any changes:**
+```
+supabase functions deploy send-fault-email
+```
+
+---
+
 ## Known issues / bugs fixed
 
 - [FIXED 2026-04-26] `admin.js` used `photo_url` in three places instead of `image_url`:
@@ -319,9 +340,11 @@ Note: `plate` column exists on `vehicles` but is not yet populated for all 32 ve
 - [x] Create `fault-photos` storage bucket in Supabase
 - [x] Build driver-facing fault reporting
 - [x] Build driver-facing known issues screen
+- [x] Set up fault report email alerts (Edge Function + Resend + Database Webhook)
 - [ ] Fill in plate, make, model, year for all 32 vehicles
 - [ ] Add Known Issues management UI to the admin/mechanic dashboard (add, resolve issues per vehicle)
-- [ ] Set up Supabase Edge Function for inspection email alerts (Resend recommended for email delivery)
+- [ ] Switch fault email from Resend sandbox (onboarding@resend.dev) to verified domain when ready
+- [ ] Set up email alerts for inspection threshold breaches (reuse send-fault-email pattern)
 - [ ] Build Stage 2 driver-facing forms: inspection checklist, deep clean checklist
 - [ ] Plan admin dashboard rebuild in Vue 3 + Vite (begin after Stage 2 driver forms are built)
 
