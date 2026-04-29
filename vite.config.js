@@ -7,8 +7,10 @@ export default defineConfig({
       input: {
         // Main driver-facing app (your existing entry)
         main: resolve(__dirname, 'index.html'),
-        // Admin dashboard (new)
+        // Admin dashboard
         admin: resolve(__dirname, 'admin/index.html'),
+        // Admin login page
+        login: resolve(__dirname, 'admin/login.html'),
       },
     },
   },

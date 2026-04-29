@@ -268,6 +268,12 @@ Photo uploads go to Supabase Storage bucket `vehicle-images`. The filename saved
   - `inspections`, `cleans`, `faults`: anon INSERT only, authenticated full access
   - `bookings`: authenticated only (no driver-facing UI yet)
 - Note: `plate` column exists on `vehicles` but is not yet populated. Be aware that anon users can SELECT vehicles — do not expose plate in the driver app query if registration data should stay private.
+- Admin authentication added ✓ — magic link login via Supabase Auth
+  - `admin/login.html` — login page styled to match admin dashboard
+  - `admin/login.js` — handles magic link request and token callback
+  - `admin/admin.js` — session check on load, redirects to login if unauthenticated
+  - `admin/index.html` — user email and Sign out button added to header
+  - Supabase URL Configuration: Site URL and redirect URL set to `https://weekly-mileage.netlify.app/admin/login.html`
 
 ---
 
@@ -275,9 +281,9 @@ Photo uploads go to Supabase Storage bucket `vehicle-images`. The filename saved
 
 - [x] Run the migration script in Supabase SQL Editor
 - [x] Enable RLS and apply security policies to all tables
+- [x] Add authentication to the admin dashboard
 - [ ] Fill in plate, make, model, year for all 32 vehicles
 - [ ] Create `fault-photos` storage bucket in Supabase
-- [ ] Add authentication to the admin dashboard
 - [ ] Set up Supabase Edge Function for inspection email alerts (Resend recommended for email delivery)
 - [ ] Build Stage 2 driver-facing forms: inspection checklist, deep clean checklist
 - [ ] Plan admin dashboard rebuild in Vue 3 + Vite (begin after migration is complete and Stage 2 driver forms are built)
