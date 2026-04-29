@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Known Issues</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Loading -->
+  <div id="screen-loading" class="screen active">
+    <div class="loader-ring"></div>
+    <p class="loader-text">Loading issues…</p>
+  </div>
+
+  <!-- Error -->
+  <div id="screen-error" class="screen">
+    <div class="error-icon">!</div>
+    <h2>Vehicle Not Found</h2>
+    <p id="error-msg">This QR code does not match any vehicle.</p>
+  </div>
+
+  <!-- Issues screen -->
+  <div id="screen-issues" class="screen">
+    <div class="screen-back-bar">
+      <button class="back-btn" id="back-to-menu">← Back</button>
+      <span class="back-title">Known Issues</span>
+    </div>
+
+    <div class="ki-header">
+      <span class="vehicle-id" id="vehicle-id-el"></span>
+      <span class="vehicle-name" id="vehicle-name-el"></span>
+    </div>
+
+    <!-- No issues state -->
+    <div id="no-issues" class="ki-empty" style="display:none">
+      <div class="ki-empty-icon">✓</div>
+      <h3>No Known Issues</h3>
+      <p>There are no active issues logged for this vehicle.</p>
+      <p class="ki-empty-sub">If you notice something wrong, please use <strong>Report a Fault</strong>.</p>
+    </div>
+
+    <!-- Issues list -->
+    <div id="issues-list" class="ki-list"></div>
+
+  </div>
+
+  <script type="module" src="known-issues.js"></script>
+</body>
+</html>

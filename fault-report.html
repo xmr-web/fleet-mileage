@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Fault Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Loading -->
+  <div id="screen-loading" class="screen active">
+    <div class="loader-ring"></div>
+    <p class="loader-text">Loading vehicle…</p>
+  </div>
+
+  <!-- Error -->
+  <div id="screen-error" class="screen">
+    <div class="error-icon">!</div>
+    <h2>Vehicle Not Found</h2>
+    <p id="error-msg">This QR code does not match any vehicle.</p>
+  </div>
+
+  <!-- Step 1: Fault type picker -->
+  <div id="screen-type" class="screen">
+    <div class="screen-back-bar">
+      <button class="back-btn" id="back-to-menu">← Back</button>
+      <span class="back-title">Report a Fault</span>
+    </div>
+
+    <div class="fault-hero">
+      <div class="fault-hero-vehicle">
+        <span class="vehicle-id" id="vehicle-id-type"></span>
+        <span class="vehicle-name" id="vehicle-name-type"></span>
+      </div>
+      <p class="fault-hero-prompt">What's the problem?</p>
+      <p class="fault-hero-sub">Tap the option that best describes the issue</p>
+    </div>
+
+    <div class="fault-type-grid">
+
+      <button class="fault-type-btn" data-type="bulb">
+        <span class="ft-icon">💡</span>
+        <span class="ft-label">Light Bulb Out</span>
+      </button>
+
+      <button class="fault-type-btn" data-type="adblue">
+        <span class="ft-icon">🔵</span>
+        <span class="ft-label">AdBlue Low</span>
+      </button>
+
+      <button class="fault-type-btn" data-type="tyre">
+        <span class="ft-icon">🔧</span>
+        <span class="ft-label">Flat / Damaged Tyre</span>
+      </button>
+
+      <button class="fault-type-btn" data-type="windscreen">
+        <span class="ft-icon">🪟</span>
+        <span class="ft-label">Windscreen Chip</span>
+      </button>
+
+      <button class="fault-type-btn" data-type="damage">
+        <span class="ft-icon">🚗</span>
+        <span class="ft-label">New Dent / Damage</span>
+      </button>
+
+      <button class="fault-type-btn" data-type="other">
+        <span class="ft-icon">📋</span>
+        <span class="ft-label">Other Issue</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Step 2: Detail form (dynamic content injected by JS) -->
+  <div id="screen-detail" class="screen">
+    <div class="screen-back-bar">
+      <button class="back-btn" id="back-to-type">← Back</button>
+      <span class="back-title" id="detail-title">Details</span>
+    </div>
+
+    <div class="card fault-detail-card">
+
+      <!-- Dynamic detail UI goes here -->
+      <div id="detail-content"></div>
+
+      <!-- Driver name (always shown) -->
+      <div class="input-block" style="margin-top: 1.25rem;">
+        <label class="label" for="driver-name">Your name <span class="optional-tag">optional</span></label>
+        <input
+          type="text"
+          id="driver-name"
+          inputmode="text"
+          autocomplete="name"
+          placeholder="e.g. John Smith"
+          class="text-input"
+        />
+      </div>
+
+      <!-- Photo upload (always shown) -->
+      <div class="input-block">
+        <label class="label">Photo <span class="optional-tag">optional</span></label>
+        <label class="photo-upload-label" id="photo-upload-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+          </svg>
+          <span id="photo-upload-text">Tap to add a photo</span>
+          <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" />
+        </label>
+        <div id="photo-preview-wrap" style="display:none">
+          <img id="photo-preview" src="" alt="Preview" class="photo-preview-img" />
+          <button class="photo-remove-btn" id="photo-remove-btn">✕ Remove photo</button>
+        </div>
+      </div>
+
+      <button class="confirm-btn" id="submit-fault-btn">
+        <span id="submit-label">Submit Report</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Success -->
+  <div id="screen-success" class="screen">
+    <div class="success-icon">
+      <svg viewBox="0 0 52 52" fill="none">
+        <circle cx="26" cy="26" r="25" stroke="currentColor" stroke-width="2"/>
+        <path d="M14 26l8 8 16-16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h2>Fault Reported</h2>
+    <p class="success-sub">Thank you — this has been sent to the fleet team.</p>
+    <div class="success-detail" id="success-detail"></div>
+    <button class="back-btn-plain" id="success-back-btn">← Back to menu</button>
+  </div>
+
+  <script type="module" src="fault-report.js"></script>
+</body>
+</html>
