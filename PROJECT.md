@@ -13,10 +13,18 @@ A mobile-first fleet management platform built around QR codes. Each vehicle get
 
 ## Product vision — 4-stage roadmap
 
-### Stage 1 — Mileage collection & reporting *(current — working)*
+### Stage 1 — Mileage collection & reporting *(complete ✓)*
 - Drivers submit odometer readings via QR-code-linked mobile app
 - Admin dashboard shows current mileage per vehicle and full submission history
 - Reporting on mileage over time per vehicle
+
+### Stage 1.5 — Fault reporting & known issues *(complete ✓)*
+- QR code now opens a **choice screen** instead of going straight to mileage entry
+- Drivers choose from: Submit Mileage, Report a Fault, or View Known Issues
+- Fault reporting covers 6 categories: bulb out, AdBlue low, flat/damaged tyre, windscreen chip, new dent/damage, other
+- Windscreen chip and dent/damage screens include an interactive SVG diagram — driver taps to pin the location of damage
+- Known issues screen shows active fleet-team notes for that vehicle (e.g. "rear wiper not working") to prevent duplicate fault reports
+- Known issues are managed by admin/mechanics from the dashboard
 
 ### Stage 2 — Scheduled maintenance & automated alerts *(next)*
 - Fortnightly engine and tyre checks submitted via QR code by drivers
@@ -24,11 +32,7 @@ A mobile-first fleet management platform built around QR codes. Each vehicle get
 - Monthly deep clean checklist with cleaning history per vehicle
 - Admin can manage task schedules, mechanics, and notification rules
 
-### Stage 3 — Driver fault reports
-- Drivers can submit fault/defect reports against a vehicle directly from the app
-- Optional photo upload
-- Faults logged with date, vehicle, driver, description, and severity
-- Mechanic dashboard shows open faults, status workflow (open → in_progress → resolved)
+### Stage 3 — Driver fault reports *(absorbed into Stage 1.5)*
 
 ### Stage 4 — Vehicle booking system
 - Drivers or managers can book vehicles for specific dates
@@ -64,12 +68,12 @@ When planning each new stage, review the schema before writing any code.
 
 - **Frontend:** Vanilla JS, Vite (no framework) — current
 - **Backend/DB:** Supabase (project: `fleet-mileage-personal`, ID: `xlrtvtqwxyojhvzmsakz`, region: eu-central-2)
-- **Storage:** Supabase Storage — bucket: `vehicle-images`
+- **Storage:** Supabase Storage — buckets: `vehicle-images`, `fault-photos`
 - **Deployment:** Netlify (auto-deploys on git push)
 - **Fonts:** Barlow + Barlow Condensed (driver app), Syne + DM Mono (admin)
 - **Packages:** `@supabase/supabase-js`, `qrcode-generator`, `vite`
 
-### Future stack direction (updated 2026-04-29)
+### Future stack direction
 - The driver-facing screens (mileage entry, inspection forms, fault reporting) will **stay as vanilla JS** — they work perfectly, are fast, and are accessed via QR code with no installation needed
 - The **admin/mechanic dashboard** will be rebuilt in **Vue 3 + Vite** as it grows in complexity across Stage 2–4
 - Vue was chosen over React after deliberate evaluation — it has a gentler learning curve, its Single File Component structure (HTML, JS, and CSS in one file) is more intuitive for someone coming from a structured programming background, and it is the right fit for a small internal dashboard with no need for React's extra complexity
@@ -83,46 +87,81 @@ When planning each new stage, review the schema before writing any code.
 
 ```
 fleet-mileage/
-├── index.html          # Driver-facing mileage entry app
-├── main.js             # Driver app logic
-├── style.css           # Driver app styles
-├── supabase.config.js  # Supabase credentials (URL + anon key)
-├── vite.config.js
+├── index.html           # Driver choice screen (mileage / fault / known issues)
+├── main.js              # Driver choice screen + mileage flow logic
+├── fault-report.html    # Driver fault reporting page
+├── fault-report.js      # Fault reporting logic
+├── known-issues.html    # Known issues page (driver-facing)
+├── known-issues.js      # Known issues logic
+├── style.css            # All driver-facing styles
+├── supabase.config.js   # Supabase credentials (URL + anon key)
+├── vite.config.js       # Vite build config (all HTML entry points registered)
 ├── package.json
 ├── README.md
 ├── SETUP.md
 └── admin/
-    ├── index.html      # Admin dashboard
-    ├── admin.js        # Admin logic
-    └── admin.css       # Admin styles
+    ├── index.html       # Admin dashboard
+    ├── admin.js         # Admin logic
+    └── admin.css        # Admin styles
 ```
 
 ---
 
 ## Supabase schema
 
-### `public.vehicles` *(exists — needs new columns added via migration)*
+### `public.vehicles` *(exists)*
 | Column | Type | Notes |
 |---|---|---|
 | id | text | Primary key, e.g. "VH001" |
 | name | text | e.g. "Ford Transit LWB" |
 | image_url | text | Path within `vehicle-images` bucket (nullable) |
 | current_mileage | integer | Updated on each submission, default 0 |
-| plate | text | Registration number — add via migration |
-| make | text | e.g. "Ford" — add via migration |
-| model | text | e.g. "Transit" — add via migration |
-| year | integer | add via migration |
-| active | boolean | Default true — add via migration |
+| plate | text | Registration number |
+| make | text | e.g. "Ford" |
+| model | text | e.g. "Transit" |
+| year | integer | |
+| active | boolean | Default true |
 
-### `public.mileage_log` *(exists — needs new columns added via migration)*
+### `public.mileage_log` *(exists)*
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid | Primary key, auto-generated |
 | vehicle_id | text | FK → vehicles.id |
 | mileage | integer | |
 | submitted_at | timestamptz | Default now() |
-| driver_name | text | Nullable — add via migration |
-| notes | text | Nullable — add via migration |
+| driver_name | text | Nullable |
+| notes | text | Nullable |
+
+### `public.faults` *(exists)*
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | PK |
+| vehicle_id | text | FK → vehicles.id |
+| reported_at | timestamptz | |
+| driver_name | text | Optional — supplied by driver |
+| description | text | Auto-generated from fault type + detail selections |
+| fault_type | text | 'bulb', 'adblue', 'tyre', 'windscreen', 'damage', 'other' |
+| severity | text | 'low', 'normal', 'high', 'critical' |
+| photo_url | text | Supabase Storage public URL (fault-photos bucket) |
+| damage_location | jsonb | {x, y, view} — percentage position on SVG diagram |
+| status | text | 'open', 'in_progress', 'resolved' |
+| resolved_at | timestamptz | |
+| mechanic_notes | text | |
+
+### `public.known_issues` *(exists — created 2026-04-29)*
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | PK |
+| vehicle_id | text | FK → vehicles.id |
+| description | text | The issue note shown to drivers |
+| added_by | text | Name of admin/mechanic who added it |
+| added_at | timestamptz | Default now() |
+| resolved | boolean | Default false — false = visible to drivers |
+| resolved_at | timestamptz | Nullable |
+
+RLS: anon users can SELECT where `resolved = false`. Authenticated users have full access.
+
+Known issues are managed from the admin/mechanic dashboard (UI to be built in the Vue 3 rebuild).
 
 ### `public.inspections` *(to be created via migration)*
 | Column | Type | Notes |
@@ -157,21 +196,7 @@ fleet-mileage/
 | exterior_washed | boolean | |
 | notes | text | |
 
-### `public.faults` *(to be created via migration)*
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | PK |
-| vehicle_id | text | FK → vehicles.id |
-| reported_at | timestamptz | |
-| driver_name | text | |
-| description | text | |
-| severity | text | 'low', 'normal', 'high', 'critical' |
-| photo_url | text | Supabase Storage public URL |
-| status | text | 'open', 'in_progress', 'resolved' |
-| resolved_at | timestamptz | |
-| mechanic_notes | text | |
-
-### `public.bookings` *(to be created via migration — Stage 4, UI to be built later)*
+### `public.bookings` *(to be created via migration — Stage 4)*
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid | PK |
@@ -183,7 +208,7 @@ fleet-mileage/
 | status | text | 'confirmed', 'cancelled' |
 | created_at | timestamptz | |
 
-### `public.vehicle_status` *(view — to be created via migration)*
+### `public.vehicle_status` *(view — exists)*
 A single query view for the mechanic dashboard showing every active vehicle's latest mileage, open fault count, critical fault flag, last clean date, last inspection date, unacknowledged alert flag, and current booking.
 
 ### `public.todos`
@@ -191,38 +216,42 @@ Unrelated legacy table — dropped by migration script.
 
 ---
 
-## Migration script
-
-A full migration script has been written and is ready to paste into the Supabase SQL Editor.
-Location: provided as a download in the 2026-04-28 Claude session.
-
-The script:
-- Drops `todos`
-- Adds new columns to `vehicles` and `mileage_log`
-- Creates `inspections`, `cleans`, `faults`, `bookings` tables
-- Creates the `vehicle_status` view
-- Sets up Row Level Security (RLS) policies:
-  - Drivers (anon key, via QR code) can INSERT but not SELECT
-  - Mechanic (authenticated login) can SELECT and UPDATE everything
-
-**Still to do after running migration:**
-- Fill in `plate`, `make`, `model`, `year` for the 32 vehicles
-- Create a Supabase Storage bucket named `fault-photos` for fault photo uploads
-- Set up Supabase Edge Function for inspection threshold email alerts (next major task)
-
----
-
 ## How the driver app works
 
+### Choice screen (index.html)
 1. URL param `?vehicle=VH001` is read on load
 2. Vehicle fetched from Supabase `vehicles` table
-3. Vehicle photo, name, ID, and last mileage displayed
-4. Driver enters new mileage — validated (cannot be less than previous)
-5. On confirm: inserts row into `mileage_log`, updates `current_mileage` on vehicle
-6. Success screen shown
+3. Vehicle photo, name, and ID displayed
+4. Known issues count fetched — badge shown on the Known Issues button if any exist
+5. Driver chooses: Submit Mileage, Report a Fault, or Known Issues
 
-## How the admin dashboard works
+### Mileage flow (index.html → screen-app)
+1. Previous mileage shown
+2. Driver enters new mileage — validated (cannot be less than previous)
+3. On confirm: inserts row into `mileage_log`, updates `current_mileage` on vehicle
+4. Success screen shown, with back-to-menu button
 
+### Fault reporting (fault-report.html)
+1. Driver taps "Report a Fault" → opens `fault-report.html?vehicle=VH001`
+2. Six large icon buttons — driver picks the fault category
+3. Follow-up detail screen based on category:
+   - **Bulb out** — pill selector for which light
+   - **AdBlue low** — pill selector for range remaining + optional litres added
+   - **Flat/damaged tyre** — pill selector for which tyre
+   - **Windscreen chip** — SVG windscreen diagram, driver taps to pin location
+   - **Dent/damage** — SVG top-down + side-view diagram with tab toggle, driver taps to pin location
+   - **Other** — free-text description field
+4. Optional driver name field (applies to all types)
+5. Optional photo upload (uses `fault-photos` Supabase Storage bucket)
+6. On submit: inserts into `faults` table with `fault_type`, `description`, `damage_location` (jsonb), `photo_url`, `driver_name`
+
+### Known issues (known-issues.html)
+1. Fetches all `known_issues` where `resolved = false` for the vehicle
+2. If none: shows a green "No Known Issues" confirmation screen
+3. If any: lists each issue with description, who logged it, and date
+4. Back button returns to choice screen
+
+### How the admin dashboard works
 Three tabs:
 - **Vehicles** — lists all vehicles, add new vehicle (with photo upload), delete vehicle
 - **Mileage** — lists all vehicles with current mileage, click to view full history modal
@@ -234,14 +263,16 @@ Photo uploads go to Supabase Storage bucket `vehicle-images`. The filename saved
 
 ## Key decisions & conventions
 
-- Column name is `image_url` (NOT `photo_url`) — this was a bug that was fixed on 2026-04-26
+- Column name is `image_url` (NOT `photo_url`) on `vehicles` — this was a bug fixed on 2026-04-26
+- Fault photos use `photo_url` on the `faults` table and the `fault-photos` storage bucket
 - Signed URLs used for vehicle photos in admin (expiry: 3600s)
 - Driver app uses `current_mileage` field directly from `vehicles` table for the "last recorded" display
 - QR codes generated client-side using `qrcode-generator`, rendered to `<canvas>`
 - No authentication on the driver app (public, URL-gated by vehicle ID)
-- Admin has no authentication currently (adding auth is next on the to-do list)
+- Admin uses magic link authentication via Supabase Auth
 - Tyre alert threshold: < 1.6mm (UK legal minimum)
 - All costs: £0 — entire stack runs on free tiers (Supabase, Netlify, Resend for email)
+- `damage_location` stored as jsonb `{x, y, view}` where x/y are percentage positions on the SVG viewBox, and view is 'top', 'side', or 'windscreen'
 
 ---
 
@@ -256,24 +287,27 @@ Photo uploads go to Supabase Storage bucket `vehicle-images`. The filename saved
 
 ## Current status (as of 2026-04-29)
 
-- Driver app: working ✓
+- Driver app choice screen: working ✓
+- Mileage submission: working ✓
+- Fault reporting: working ✓
+- Known issues (driver view): working ✓
 - Admin dashboard: working ✓
 - 32 vehicles in the database ✓
-- Full migration script written and ready to run ✓
-- Technology stack decisions finalised ✓ (Vue 3 + Vite for admin rebuild, Supabase confirmed as the right backend choice)
-- Migration run ✓ — all tables and `vehicle_status` view created in Supabase
-- RLS (Row Level Security) enabled and policies applied to all tables ✓
-  - `vehicles`: anon SELECT (drivers need to load vehicle card), authenticated full access
-  - `mileage_log`: anon INSERT only, authenticated full access
-  - `inspections`, `cleans`, `faults`: anon INSERT only, authenticated full access
-  - `bookings`: authenticated only (no driver-facing UI yet)
-- Note: `plate` column exists on `vehicles` but is not yet populated. Be aware that anon users can SELECT vehicles — do not expose plate in the driver app query if registration data should stay private.
-- Admin authentication added ✓ — magic link login via Supabase Auth
-  - `admin/login.html` — login page styled to match admin dashboard
-  - `admin/login.js` — handles magic link request and token callback
-  - `admin/admin.js` — session check on load, redirects to login if unauthenticated
-  - `admin/index.html` — user email and Sign out button added to header
-  - Supabase URL Configuration: Site URL and redirect URL set to `https://weekly-mileage.netlify.app/admin/login.html`
+- Full migration script written and run ✓ — all tables and `vehicle_status` view created
+- RLS enabled and policies applied to all tables ✓
+- Admin authentication (magic link via Supabase Auth) ✓
+- `fault-photos` storage bucket created ✓
+- `known_issues` table created ✓ (migration run 2026-04-29)
+- `fault_type` and `damage_location` columns added to `faults` table ✓
+
+RLS summary:
+- `vehicles`: anon SELECT, authenticated full access
+- `mileage_log`: anon INSERT only, authenticated full access
+- `inspections`, `cleans`, `faults`: anon INSERT only, authenticated full access
+- `bookings`: authenticated only
+- `known_issues`: anon SELECT (resolved = false only), authenticated full access
+
+Note: `plate` column exists on `vehicles` but is not yet populated for all 32 vehicles.
 
 ---
 
@@ -282,11 +316,14 @@ Photo uploads go to Supabase Storage bucket `vehicle-images`. The filename saved
 - [x] Run the migration script in Supabase SQL Editor
 - [x] Enable RLS and apply security policies to all tables
 - [x] Add authentication to the admin dashboard
+- [x] Create `fault-photos` storage bucket in Supabase
+- [x] Build driver-facing fault reporting
+- [x] Build driver-facing known issues screen
 - [ ] Fill in plate, make, model, year for all 32 vehicles
-- [ ] Create `fault-photos` storage bucket in Supabase
+- [ ] Add Known Issues management UI to the admin/mechanic dashboard (add, resolve issues per vehicle)
 - [ ] Set up Supabase Edge Function for inspection email alerts (Resend recommended for email delivery)
 - [ ] Build Stage 2 driver-facing forms: inspection checklist, deep clean checklist
-- [ ] Plan admin dashboard rebuild in Vue 3 + Vite (begin after migration is complete and Stage 2 driver forms are built)
+- [ ] Plan admin dashboard rebuild in Vue 3 + Vite (begin after Stage 2 driver forms are built)
 
 ---
 
@@ -338,6 +375,7 @@ Martin has a strong background in old-school programming (1980s–2000s) includi
 - He is comfortable with structured logic, data, and SQL — lean into that
 - He uses Claude Desktop with the filesystem MCP and Supabase MCP connectors connected
 - GitHub connector is not available — cannot browse repos directly
+- Sessions expire frequently mid-task — always write files incrementally and confirm each one before moving to the next where possible
 
 ---
 
