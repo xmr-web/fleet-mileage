@@ -9,6 +9,7 @@ let vehicleId = null
 let selectedType = null
 let damagePoint = null   // { x, y } percentage on diagram
 let photoFile = null
+let bulbTypes = []       // loaded from bulb_types table
 
 // ── Screens ───────────────────────────────────────────────────
 const screens = {
@@ -47,6 +48,15 @@ async function init() {
   vehicle = data
   document.getElementById('vehicle-id-type').textContent   = vehicle.id
   document.getElementById('vehicle-name-type').textContent = vehicle.name
+
+  // Load bulb types from DB
+  const { data: bulbs } = await supabase
+    .from('bulb_types')
+    .select('label')
+    .eq('active', true)
+    .order('sort_order')
+  bulbTypes = (bulbs ?? []).map(b => b.label)
+
   showScreen('type')
 }
 
@@ -75,12 +85,14 @@ document.querySelectorAll('.fault-type-btn').forEach(btn => {
 
 // ── Detail screen builder ─────────────────────────────────────
 const detailTitles = {
-  bulb:       'Light Bulb Out',
-  adblue:     'AdBlue Low',
-  tyre:       'Flat / Damaged Tyre',
-  windscreen: 'Windscreen Chip',
-  damage:     'New Dent / Damage',
-  other:      'Other Issue',
+  bulb:        'Light Bulb Out',
+  adblue:      'AdBlue Low',
+  tyre:        'Flat / Damaged Tyre',
+  windscreen:  'Windscreen Chip',
+  damage:      'New Dent / Damage',
+  key_battery: 'Key Battery Low',
+  wipers:      'Wipers',
+  other:       'Other Issue',
 }
 
 function buildDetailScreen(type) {
@@ -90,16 +102,17 @@ function buildDetailScreen(type) {
   damagePoint = null
 
   if (type === 'bulb') {
+    const options = bulbTypes.length
+      ? bulbTypes.map(b => `<option value="${b}">${b}</option>`).join('')
+      : '<option value="Other">Other</option>'
     container.innerHTML = `
       <div class="detail-question">
         <p class="detail-q-label">Which light is out?</p>
-        <div class="pill-group" id="bulb-group">
-          ${['Left headlight','Right headlight','Left rear','Right rear','Brake light','Interior','Number plate','Other'].map(b =>
-            `<button class="pill" data-val="${b}">${b}</button>`
-          ).join('')}
-        </div>
+        <select id="bulb-select" class="select-input">
+          <option value="" disabled selected>Select a light…</option>
+          ${options}
+        </select>
       </div>`
-    initPillGroup('bulb-group')
 
   } else if (type === 'adblue') {
     container.innerHTML = `
@@ -233,6 +246,21 @@ function buildDetailScreen(type) {
     initDiagram('top-svg',  'top-pin',  'top-pin-circle',  'top-pin-dot',  'damage-hint')
     initDiagram('side-svg', 'side-pin', 'side-pin-circle', 'side-pin-dot', 'damage-hint')
 
+  } else if (type === 'key_battery') {
+    // No detail required — just driver name + photo from the shared fields below
+    container.innerHTML = `
+      <div class="detail-question">
+        <p class="detail-q-label">Key battery is low</p>
+        <p class="detail-q-note">No further details needed — just submit the report and the fleet team will be notified.</p>
+      </div>`
+
+  } else if (type === 'wipers') {
+    container.innerHTML = `
+      <div class="detail-question">
+        <p class="detail-q-label">Please describe the wiper issue</p>
+        <textarea id="wiper-description" class="text-area" rows="4" placeholder="e.g. driver side wiper smearing, rear wiper not working…"></textarea>
+      </div>`
+
   } else if (type === 'other') {
     container.innerHTML = `
       <div class="detail-question">
@@ -325,9 +353,9 @@ async function submitFault() {
   let extraData   = {}
 
   if (selectedType === 'bulb') {
-    const sel = document.querySelector('#bulb-group .pill.selected')
-    if (!sel) { showDetailError('Please select which light is out.'); return }
-    description = `Light bulb out: ${sel.dataset.val}`
+    const sel = document.getElementById('bulb-select')
+    if (!sel || !sel.value) { showDetailError('Please select which light is out.'); return }
+    description = `Light bulb out: ${sel.value}`
 
   } else if (selectedType === 'adblue') {
     const sel    = document.querySelector('#range-group .pill.selected')
@@ -348,6 +376,14 @@ async function submitFault() {
   } else if (selectedType === 'damage') {
     description = 'New dent/body damage'
     if (damagePoint) description += ` — location marked on diagram (${damagePoint.view} view)`
+
+  } else if (selectedType === 'key_battery') {
+    description = 'Key battery low'
+
+  } else if (selectedType === 'wipers') {
+    const text = document.getElementById('wiper-description')?.value?.trim()
+    if (!text) { showDetailError('Please describe the wiper issue.'); return }
+    description = `Wipers: ${text}`
 
   } else if (selectedType === 'other') {
     const text = document.getElementById('other-description')?.value?.trim()

@@ -686,6 +686,43 @@ html, body {
   margin-left: 6px;
 }
 
+/* Select dropdown */
+.select-input {
+  width: 100%;
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 1rem;
+  padding: 14px 16px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b9099' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 44px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.select-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.select-input option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* Detail note (used on key battery screen) */
+.detail-q-note {
+  font-size: 14px;
+  color: var(--text-soft);
+  line-height: 1.6;
+  margin-top: 4px;
+}
+
 /* AdBlue amount row */
 .adblue-amount-row {
   display: flex;
