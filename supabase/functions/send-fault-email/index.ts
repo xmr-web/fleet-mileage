@@ -1,21 +1,21 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 // Supabase calls this function with the new fault row in the request body.
-// We fetch the recipient addresses and Resend API key from app_settings,
-// then send a formatted email via Resend.
+// Recipient addresses and the Gmail sender address are read from app_settings.
+// The Gmail app password is stored as a Supabase Edge Function secret: GMAIL_APP_PASSWORD.
 
 Deno.serve(async (req) => {
   try {
     // --- 1. Parse the incoming webhook payload ---
     const payload = await req.json();
-    const fault = payload.record; // the newly inserted faults row
+    const fault = payload.record;
 
     if (!fault) {
       return new Response("No record in payload", { status: 400 });
     }
 
     // --- 2. Connect to Supabase using the service role key ---
-    // The service role key bypasses RLS so we can read app_settings.
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -35,13 +35,19 @@ Deno.serve(async (req) => {
 
     const mechanicEmail = config["mechanic_email"];
     const adminEmail    = config["admin_email"];
-    const resendApiKey  = config["resend_api_key"];
+    const gmailUser     = config["gmail_user"]; // e.g. fleetalerts@gmail.com
 
-    if (!mechanicEmail || !adminEmail || !resendApiKey) {
-      throw new Error("Missing required config in app_settings");
+    if (!mechanicEmail || !adminEmail || !gmailUser) {
+      throw new Error("Missing required config in app_settings (mechanic_email, admin_email, gmail_user)");
     }
 
-    // --- 4. Fetch the vehicle name for the email ---
+    // Gmail app password stored as a Supabase Edge Function secret
+    const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD");
+    if (!gmailAppPassword) {
+      throw new Error("Missing GMAIL_APP_PASSWORD secret");
+    }
+
+    // --- 4. Fetch the vehicle name ---
     const { data: vehicle } = await supabase
       .from("vehicles")
       .select("name, plate")
@@ -114,27 +120,29 @@ Log in to the admin dashboard to manage this fault:
 https://weekly-mileage.netlify.app/admin/
     `.trim();
 
-    // --- 8. Send via Resend ---
-    const resendResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
+    // --- 8. Send via Gmail SMTP ---
+    const client = new SMTPClient({
+      connection: {
+        hostname: "smtp.gmail.com",
+        port: 465,
+        tls: true,
+        auth: {
+          username: gmailUser,
+          password: gmailAppPassword,
+        },
       },
-      body: JSON.stringify({
-        from:    "Fleet Mileage <onboarding@resend.dev>",
-        to:      [mechanicEmail],
-        cc:      [adminEmail],
-        subject: `⚠️ Fault Report — ${vehicleName} — ${faultTypeLabel}`,
-        html:    emailHtml,
-        text:    emailText,
-      }),
     });
 
-    if (!resendResponse.ok) {
-      const errorBody = await resendResponse.text();
-      throw new Error(`Resend error ${resendResponse.status}: ${errorBody}`);
-    }
+    await client.send({
+      from:    `Fleet Alerts <${gmailUser}>`,
+      to:      mechanicEmail,
+      cc:      adminEmail,
+      subject: `⚠️ Fault Report — ${vehicleName} — ${faultTypeLabel}`,
+      html:    emailHtml,
+      content: emailText,
+    });
+
+    await client.close();
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { "Content-Type": "application/json" },
