@@ -271,7 +271,7 @@ Photo uploads go to Supabase Storage bucket `vehicle-images`. The filename saved
 - No authentication on the driver app (public, URL-gated by vehicle ID)
 - Admin uses magic link authentication via Supabase Auth
 - Tyre alert threshold: < 1.6mm (UK legal minimum)
-- All costs: £0 — entire stack runs on free tiers (Supabase, Netlify, Resend for email)
+- All costs: £0 — entire stack runs on free tiers (Supabase, Netlify, Gmail SMTP for email)
 - `damage_location` stored as jsonb `{x, y, view}` where x/y are percentage positions on the SVG viewBox, and view is 'top', 'side', or 'windscreen'
 
 ---
@@ -282,13 +282,15 @@ Photo uploads go to Supabase Storage bucket `vehicle-images`. The filename saved
 When a driver submits a fault, an email is automatically sent to the fleet mechanic (To) and admin (CC).
 
 **Stack:**
-- **Resend** — email delivery service (free tier, 3,000 emails/month)
-- **Supabase Edge Function** — `send-fault-email` (deployed at `supabase/functions/send-fault-email/index.ts`)
+- **Gmail SMTP** — sends via a dedicated fleet Gmail account using an App Password (no domain verification needed)
+- **Supabase Edge Function** — `send-fault-email` (deployed at `supabase/functions/send-fault-email/index.ts`) — uses `denomailer@1.6.0` via `smtp.gmail.com:465`
 - **Supabase Database Webhook** — `on_fault_inserted` — fires on INSERT to `faults` table, calls the Edge Function
 
-**Config:** Recipient addresses and Resend API key are stored in `public.app_settings` (key/value table). Update them there — no code changes or redeployment needed.
+**Config:** Recipient addresses and the Gmail sender address (`gmail_user`) are stored in `public.app_settings`. The Gmail App Password is stored as a Supabase Edge Function secret (`GMAIL_APP_PASSWORD`) — never in code or app_settings.
 
-**Current from address:** `onboarding@resend.dev` (Resend sandbox — emails may go to spam). To fix: verify a real domain in Resend, update the `from` field in the Edge Function, redeploy.
+**From address:** The fleet Gmail account — already trusted by the mechanic from the previous Coda-based system.
+
+**Why Gmail instead of Resend:** Resend requires DNS verification of an owned domain. The fleet Gmail account is already recognised by the mechanic, so switching to Gmail SMTP via App Password was the simpler and more appropriate solution.
 
 **To redeploy the function after any changes:**
 ```
@@ -306,7 +308,7 @@ supabase functions deploy send-fault-email
 
 ---
 
-## Current status (as of 2026-04-29)
+## Current status (as of 2026-04-30)
 
 - Driver app choice screen: working ✓
 - Mileage submission: working ✓
@@ -343,7 +345,7 @@ Note: `plate` column exists on `vehicles` but is not yet populated for all 32 ve
 - [x] Set up fault report email alerts (Edge Function + Resend + Database Webhook)
 - [ ] Fill in plate, make, model, year for all 32 vehicles
 - [ ] Add Known Issues management UI to the admin/mechanic dashboard (add, resolve issues per vehicle)
-- [ ] Switch fault email from Resend sandbox (onboarding@resend.dev) to verified domain when ready
+- [x] Switch fault email from Resend sandbox to Gmail SMTP via App Password (2026-04-30)
 - [ ] Set up email alerts for inspection threshold breaches (reuse send-fault-email pattern)
 - [ ] Build Stage 2 driver-facing forms: inspection checklist, deep clean checklist
 - [ ] Plan admin dashboard rebuild in Vue 3 + Vite (begin after Stage 2 driver forms are built)
