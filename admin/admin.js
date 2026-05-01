@@ -11,7 +11,7 @@
  *   mileage_log (vehicle_id, mileage, submitted_at)
  *
  * Storage:
- *   bucket: vehicle-images (public — uses getPublicUrl, no expiry)
+ *   bucket: vehicle-images (private — uses signed URLs)
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -21,6 +21,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 import qrcode from 'qrcode-generator';
 
 const BASE_URL = 'https://weekly-mileage.netlify.app';
+const SIGNED_URL_EXPIRY = 3600; // seconds
 
 // ── State ──────────────────────────────────────────────────────────────────
 let vehicles = [];
@@ -75,17 +76,19 @@ async function loadAll() {
     return;
   }
 
-  // Resolve public URLs for all vehicles with a photo (no expiry)
-  vehicles = data.map(v => {
-    if (v.image_url) {
-      const { data: pub } = supabase
-        .storage
-        .from('vehicle-images')
-        .getPublicUrl(v.image_url);
-      return { ...v, resolvedUrl: pub?.publicUrl || null };
-    }
-    return { ...v, resolvedUrl: null };
-  });
+  // Resolve signed URLs for all vehicles with a photo
+  vehicles = await Promise.all(
+    data.map(async v => {
+      if (v.image_url) {
+        const { data: signed } = await supabase
+          .storage
+          .from('vehicle-images')
+          .createSignedUrl(v.image_url, SIGNED_URL_EXPIRY);
+        return { ...v, signedUrl: signed?.signedUrl || null };
+      }
+      return { ...v, signedUrl: null };
+    })
+  );
  console.log('Vehicles loaded:', vehicles);  // ← add here
   renderVehicleGrid();
   renderMileageList();
@@ -103,8 +106,8 @@ function renderVehicleGrid() {
 
   grid.innerHTML = vehicles.map(v => `
     <div class="vehicle-card" data-id="${v.id}">
-      ${v.resolvedUrl
-        ? `<img class="vehicle-card-photo" src="${v.resolvedUrl}" alt="${v.name}" />`
+      ${v.image_url
+        ? `<img class="vehicle-card-photo" src="${v.image_url}" alt="${v.name}" />`
         : `<div class="vehicle-card-photo placeholder">🚗</div>`
       }
       <div class="vehicle-card-body">
@@ -394,7 +397,7 @@ async function deleteVehicle(vehicleId) {
 
   // Delete photo from storage if it exists
   if (vehicle?.image_url) {
-    await supabase.storage.from('vehicle-images').remove([vehicle.image_url]); // image_url is now just the filename
+    await supabase.storage.from('vehicle-images').remove([vehicle.image_url]);
   }
 
   // Delete mileage log entries
