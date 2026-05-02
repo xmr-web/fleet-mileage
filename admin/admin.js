@@ -20,7 +20,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../supabase.config.js';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 import qrcode from 'qrcode-generator';
 
-const BASE_URL = 'https://weekly-mileage.netlify.app';
+const BASE_URL = 'https://fleet-mileage.pages.dev';
 
 // ── State ──────────────────────────────────────────────────────────────────
 let vehicles = [];
