@@ -124,7 +124,7 @@ function renderMileageList() {
         <span class="mileage-row-name">${v.name}</span>
         <span class="mileage-row-miles">${v.current_mileage?.toLocaleString() ?? '—'} <span>mi</span></span>
         <span class="mileage-row-action">
-          <button class="btn-icon" data-action="history" data-id="${v.id}" data-name="${v.name} data-plate="${v.plate || v.id}">View history</button>
+          <button class="btn-icon" data-action="history" data-id="${v.id}" data-name="${v.name}" data-plate="${v.plate || v.id}">View history</button>
         </span>
       </div>
     `).join('')}
