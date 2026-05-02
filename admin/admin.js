@@ -21,7 +21,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 import qrcode from 'qrcode-generator';
 
 const BASE_URL = 'https://weekly-mileage.netlify.app';
-const SIGNED_URL_EXPIRY = 3600; // seconds
 
 // ── State ──────────────────────────────────────────────────────────────────
 let vehicles = [];
@@ -76,19 +75,12 @@ async function loadAll() {
     return;
   }
 
-  // Resolve signed URLs for all vehicles with a photo
-  vehicles = await Promise.all(
-    data.map(async v => {
-      if (v.image_url) {
-        const { data: signed } = await supabase
-          .storage
-          .from('vehicle-images')
-          .createSignedUrl(v.image_url, SIGNED_URL_EXPIRY);
-        return { ...v, signedUrl: signed?.signedUrl || null };
-      }
-      return { ...v, signedUrl: null };
-    })
-  );
+  // Construct public URLs directly (bucket is public, no expiry)
+  const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/vehicle-images`;
+  vehicles = data.map(v => ({
+    ...v,
+    resolvedUrl: v.image_url ? `${STORAGE_BASE}/${encodeURIComponent(v.image_url)}` : null
+  }));
  console.log('Vehicles loaded:', vehicles);  // ← add here
   renderVehicleGrid();
   renderMileageList();
@@ -106,8 +98,8 @@ function renderVehicleGrid() {
 
   grid.innerHTML = vehicles.map(v => `
     <div class="vehicle-card" data-id="${v.id}">
-      ${v.image_url
-        ? `<img class="vehicle-card-photo" src="${v.image_url}" alt="${v.name}" />`
+      ${v.resolvedUrl
+        ? `<img class="vehicle-card-photo" src="${v.resolvedUrl}" alt="${v.name}" />`
         : `<div class="vehicle-card-photo placeholder">🚗</div>`
       }
       <div class="vehicle-card-body">
