@@ -80,8 +80,13 @@ function populateChoice() {
   vehicleIdEl.textContent   = vehicle.id
   vehicleNameEl.textContent = vehicle.name
 
-  if (vehicle.image_url) {
-    vehiclePhoto.src = vehicle.image_url
+  const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/vehicle-images`
+  const photoUrl = vehicle.image_url
+    ? `${STORAGE_BASE}/${encodeURIComponent(vehicle.image_url)}`
+    : null
+
+  if (photoUrl) {
+    vehiclePhoto.src = photoUrl
     vehiclePhoto.alt = vehicle.name
   } else {
     vehiclePhoto.style.display = 'none'
@@ -90,8 +95,8 @@ function populateChoice() {
   // Also populate mileage screen header
   vehicleIdEl2.textContent   = vehicle.id
   vehicleNameEl2.textContent = vehicle.name
-  if (vehicle.image_url) {
-    vehiclePhoto2.src = vehicle.image_url
+  if (photoUrl) {
+    vehiclePhoto2.src = photoUrl
     vehiclePhoto2.alt = vehicle.name
   } else {
     vehiclePhoto2.style.display = 'none'

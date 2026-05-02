@@ -49,6 +49,18 @@ async function init() {
   document.getElementById('vehicle-id-type').textContent   = vehicle.id
   document.getElementById('vehicle-name-type').textContent = vehicle.name
 
+  // Set vehicle photo if available
+  const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/vehicle-images`
+  const photoEl = document.getElementById('vehicle-photo-type')
+  if (photoEl) {
+    if (vehicle.image_url) {
+      photoEl.src = `${STORAGE_BASE}/${encodeURIComponent(vehicle.image_url)}`
+      photoEl.alt = vehicle.name
+    } else {
+      photoEl.style.display = 'none'
+    }
+  }
+
   // Load bulb types from DB
   const { data: bulbs } = await supabase
     .from('bulb_types')
