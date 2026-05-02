@@ -124,14 +124,14 @@ function renderMileageList() {
         <span class="mileage-row-name">${v.name}</span>
         <span class="mileage-row-miles">${v.current_mileage?.toLocaleString() ?? '—'} <span>mi</span></span>
         <span class="mileage-row-action">
-          <button class="btn-icon" data-action="history" data-id="${v.id}" data-name="${v.name}">View history</button>
+          <button class="btn-icon" data-action="history" data-id="${v.id}" data-name="${v.name} data-plate="${v.plate || v.id}">View history</button>
         </span>
       </div>
     `).join('')}
   `;
 
   list.querySelectorAll('[data-action="history"]').forEach(btn => {
-    btn.addEventListener('click', () => openHistoryModal(btn.dataset.id, btn.dataset.name));
+    btn.addEventListener('click', () => openHistoryModal(btn.dataset.id, btn.dataset.name, btn.dataset.plate));
   });
 }
 
@@ -294,12 +294,12 @@ function initVehicleForm() {
 }
 
 // ── History Modal ──────────────────────────────────────────────────────────
-async function openHistoryModal(vehicleId, vehicleName) {
+async function openHistoryModal(vehicleId, vehicleName, vehiclePlate) {
   const modal   = document.getElementById('history-modal');
   const title   = document.getElementById('modal-title');
   const body    = document.getElementById('modal-body');
 
-  title.textContent = `${vehicleName} (${vehicleId}) — Mileage History`;
+  title.textContent = `${vehicleName} (${vehiclePlate}) — Mileage History`;
   body.innerHTML = '<div class="loading-state">Loading…</div>';
   modal.classList.remove('hidden');
 
@@ -339,7 +339,7 @@ function openDeleteModal(vehicleId) {
   const vehicle = vehicles.find(v => v.id === vehicleId);
   pendingDeleteId = vehicleId;
   document.getElementById('delete-confirm-text').textContent =
-    `Delete "${vehicle?.name}" (${vehicleId})? This will permanently remove the vehicle and all its mileage history.`;
+    `Delete "${vehicle?.name}" (${vehicle?.plate || vehicleId})? This will permanently remove the vehicle and all its mileage history.`;
   document.getElementById('delete-modal').classList.remove('hidden');
 }
 
