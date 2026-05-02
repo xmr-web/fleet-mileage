@@ -27,24 +27,7 @@ let vehicles = [];
 let pendingDeleteId = null;
 
 // ── Boot ───────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', async () => {
-  // Check for an active session — redirect to login if not authenticated
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    window.location.replace('/admin/login.html');
-    return;
-  }
-
-  // Show the logged-in user's email in the header
-  const userEmailEl = document.getElementById('user-email');
-  if (userEmailEl) userEmailEl.textContent = session.user.email;
-
-  // Logout button
-  document.getElementById('logout-btn').addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    window.location.replace('/admin/login.html');
-  });
-
+document.addEventListener('DOMContentLoaded', () => {
   initTabs();
   initVehicleForm();
   initModals();
