@@ -59,7 +59,7 @@ When planning each new stage, review the schema before writing any code.
 
 ## Live URLs
 
-- **Driver app:** https://fleet-mileage.pages.dev/?vehicle=VH001
+- **Driver app:** https://fleet-mileage.pages.dev/?vehicle=V001
 - **Admin dashboard:** https://fleet-mileage.pages.dev/admin/
 
 ---
@@ -79,6 +79,7 @@ When planning each new stage, review the schema before writing any code.
 - The **admin/mechanic dashboard** will be rebuilt in **Vue 3 + Vite** as it grows in complexity across Stage 2–4
 - Vue was chosen over React after deliberate evaluation — it has a gentler learning curve, its Single File Component structure (HTML, JS, and CSS in one file) is more intuitive for someone coming from a structured programming background, and it is the right fit for a small internal dashboard with no need for React's extra complexity
 - Next.js was ruled out — it adds server-side rendering complexity that an internal admin tool simply doesn't need
+- Flutter was evaluated and rejected — the driver app's core strength is that drivers tap a QR code and it opens with no installation. Flutter would destroy that. The admin dashboard is an internal browser tool that Vue 3 handles perfectly. Flutter adds Dart, a new build pipeline, and significant complexity for zero benefit.
 - Low-code tools (Retool, Budibase, Appsmith) were evaluated and rejected: Retool has vendor lock-in risk as a closed-source commercial product; Budibase has no meaningful free tier; Appsmith requires too much JavaScript for the benefit it provides
 - Supabase backend is framework-agnostic and requires no changes regardless of frontend choice
 
@@ -113,14 +114,14 @@ fleet-mileage/
 ### `public.vehicles` *(exists)*
 | Column | Type | Notes |
 |---|---|---|
-| id | text | Primary key, e.g. "VH001" |
-| name | text | e.g. "Ford Transit LWB" |
-| image_url | text | Path within `vehicle-images` bucket (nullable) |
+| id | text | Primary key, e.g. "V001" |
+| name | text | e.g. "Blue Caddy" |
+| image_url | text | Plain filename within `vehicle-images` bucket (nullable) |
 | current_mileage | integer | Updated on each submission, default 0 |
-| plate | text | Registration number |
-| make | text | e.g. "Ford" |
-| model | text | e.g. "Transit" |
-| year | integer | |
+| plate | text | Registration number — all 32 vehicles populated ✓ |
+| Make | text | Note: capitalised column name — must use double-quotes in SQL |
+| Model | text | Note: capitalised column name |
+| Year | integer | Note: capitalised column name |
 | active | boolean | Default true |
 
 ### `public.mileage_log` *(exists)*
@@ -220,9 +221,9 @@ Unrelated legacy table — dropped by migration script.
 ## How the driver app works
 
 ### Choice screen (index.html)
-1. URL param `?vehicle=VH001` is read on load
+1. URL param `?vehicle=V001` is read on load
 2. Vehicle fetched from Supabase `vehicles` table
-3. Vehicle photo, name, and ID displayed
+3. Vehicle photo displayed; **plate** shown large/white/bold on top, vehicle name shown below in orange/small
 4. Known issues count fetched — badge shown on the Known Issues button if any exist
 5. Driver chooses: Submit Mileage, Report a Fault, or Known Issues
 
@@ -233,7 +234,7 @@ Unrelated legacy table — dropped by migration script.
 4. Success screen shown, with back-to-menu button
 
 ### Fault reporting (fault-report.html)
-1. Driver taps "Report a Fault" → opens `fault-report.html?vehicle=VH001`
+1. Driver taps "Report a Fault" → opens `fault-report.html?vehicle=V001`
 2. Six large icon buttons — driver picks the fault category
 3. Follow-up detail screen based on category:
    - **Bulb out** — pill selector for which light
@@ -255,26 +256,53 @@ Unrelated legacy table — dropped by migration script.
 ### How the admin dashboard works
 Three tabs:
 - **Vehicles** — lists all vehicles, add new vehicle (with photo upload), delete vehicle
-- **Mileage** — lists all vehicles with current mileage, click to view full history modal
-- **QR Codes** — generates QR codes client-side (canvas), printable
+- **Mileage** — lists all vehicles with current mileage and plate; click to view full history modal (shows plate + name in title)
+- **QR Codes** — generates QR codes client-side (canvas), shows plate only (no vehicle name) under each code
 
-Photo uploads go to Supabase Storage bucket `vehicle-images`. The filename saved is `{id}.{ext}` (e.g. `VH001.jpg`). The `image_url` column stores just the filename (e.g. `01 Grey Octavia.jpg`). Public URLs are constructed at runtime in `admin.js` as `${SUPABASE_URL}/storage/v1/object/public/vehicle-images/${encodeURIComponent(filename)}`. The `vehicle-images` bucket is **public** (set 2026-05-02).
+Photo uploads go to Supabase Storage bucket `vehicle-images`. The filename saved is `{id}.{ext}` (e.g. `V001.jpg`). The `image_url` column stores just the filename. Public URLs are constructed at runtime in `admin.js` as `${SUPABASE_URL}/storage/v1/object/public/vehicle-images/${encodeURIComponent(filename)}`. The `vehicle-images` bucket is **public**.
 
 ---
 
 ## Key decisions & conventions
 
-- Column name is `image_url` (NOT `photo_url`) on `vehicles` — this was a bug fixed on 2026-04-26
+- Column name is `image_url` (NOT `photo_url`) on `vehicles`
 - Fault photos use `photo_url` on the `faults` table and the `fault-photos` storage bucket
-- Signed URLs used for vehicle photos in admin (expiry: 3600s)
+- Vehicle photo public URLs constructed at runtime from plain filename in `image_url`
 - Driver app uses `current_mileage` field directly from `vehicles` table for the "last recorded" display
 - QR codes generated client-side using `qrcode-generator`, rendered to `<canvas>`
+- QR codes display plate only (no vehicle name), with `|| id` fallback if plate is blank
 - No authentication on the driver app (public, URL-gated by vehicle ID)
-- No authentication on the admin dashboard — removed 2026-05-02. The app is internal-only, the admin URL is not publicly advertised, and the user base is Martin + occasional temporary assistant. The risk of unauthorised access is negligible for this use case.
-- Previously used Supabase Auth magic link — removed because: (1) Supabase free tier has a 2 emails/hour rate limit which caused friction during development, (2) auth adds no meaningful security for this internal tool
+- No authentication on the admin dashboard — removed 2026-05-02. The app is internal-only and the risk of unauthorised access is negligible for this use case.
+- `Make`, `Model`, `Year` columns on `vehicles` are capitalised — always wrap in double-quotes in SQL: `"Make"`, `"Model"`, `"Year"`
 - Tyre alert threshold: < 1.6mm (UK legal minimum)
 - All costs: £0 — entire stack runs on free tiers (Supabase, Cloudflare Pages, Gmail SMTP for email)
 - `damage_location` stored as jsonb `{x, y, view}` where x/y are percentage positions on the SVG viewBox, and view is 'top', 'side', or 'windscreen'
+
+---
+
+## Maintenance task engine — design (planned, not yet built)
+
+This is the backbone of Stage 2. The goal is a single unified system that handles all recurring checks and cleans.
+
+### Core concept
+- **One unified history table** (`maintenance_log`) — every completed check or clean is a single row with a `record_type` (e.g. `engine_check`, `adblue_check`, `light_check`, `tyre_check`, `clean_interior`, `clean_exterior`, `mileage`)
+- **To-do / done** is calculated, not stored — the system knows the last time each task was done per vehicle and whether it is due again based on the rules
+- **Per-vehicle task rules** (`task_rules` table) — one row per vehicle per task type, storing the default interval, any override interval, and an enabled/disabled flag
+
+### Task due logic — "whichever comes first"
+Each history row stores both the date and the mileage at time of completion. Due calculation:
+- Days since last completion ≥ day interval → due
+- Miles since last completion ≥ mileage interval → due
+- Either condition true → due
+
+### Per-vehicle exceptions (stored in `task_rules`)
+- A vehicle with a known leak gets a shorter check interval (override on the default)
+- A vehicle with onboard diagnostics (e.g. most VWs) has light checks disabled (`enabled = false`)
+
+### Open design questions (to resolve before building)
+1. Is the to-do list for admin only, or also driver-facing (prompted at QR scan)?
+2. Confirm unified `maintenance_log` replaces `inspections` + `cleans`, or supplements them?
+3. What are the default intervals for each task type (days and mileage)?
 
 ---
 
@@ -290,10 +318,6 @@ When a driver submits a fault, an email is automatically sent to the fleet mecha
 
 **Config:** Recipient addresses and the Gmail sender address (`gmail_user`) are stored in `public.app_settings`. The Gmail App Password is stored as a Supabase Edge Function secret (`GMAIL_APP_PASSWORD`) — never in code or app_settings.
 
-**From address:** The fleet Gmail account — already trusted by the mechanic from the previous Coda-based system.
-
-**Why Gmail instead of Resend:** Resend requires DNS verification of an owned domain. The fleet Gmail account is already recognised by the mechanic, so switching to Gmail SMTP via App Password was the simpler and more appropriate solution.
-
 **To redeploy the function after any changes:**
 ```
 supabase functions deploy send-fault-email
@@ -304,10 +328,15 @@ supabase functions deploy send-fault-email
 ## Known issues / bugs fixed
 
 - [FIXED 2026-04-26] `admin.js` used `photo_url` in three places instead of `image_url`
-- [FIXED 2026-05-02] `vehicle-images` bucket was private — `getPublicUrl` was silently failing, returning just the filename, causing 404s. Fixed by setting `public = true` on the bucket via SQL.
-- [FIXED 2026-05-02] All 32 `image_url` values in `vehicles` table were full signed URLs — stripped back to plain filenames via SQL. Public URL now constructed at runtime in `admin.js`.
-- [FIXED 2026-05-02] One vehicle (`V010`) had a double-concatenated signed URL stored in `image_url` — caused by a duplicate save during upload. Resolved by regenerating the signed URL.
-- [FIXED 2026-05-02] Admin auth removed — Supabase magic link rate limit (2/hour) was causing friction. Auth unnecessary for this internal tool.
+- [FIXED 2026-05-02] `vehicle-images` bucket was private — `getPublicUrl` was silently failing. Fixed by setting `public = true` on the bucket via SQL.
+- [FIXED 2026-05-02] All 32 `image_url` values stripped back to plain filenames. Public URL now constructed at runtime.
+- [FIXED 2026-05-02] One vehicle (`V010`) had a double-concatenated signed URL in `image_url` — resolved by regenerating.
+- [FIXED 2026-05-02] Admin auth removed — Supabase magic link rate limit (2/hour) was causing friction.
+- [FIXED 2026-05-02] `mileage_log` had no anon SELECT policy — history modal in admin returned empty results after auth removal. Fixed by adding `"Anon can read mileage_log"` SELECT policy for the anon role.
+- [FIXED 2026-05-02] QR cards were showing vehicle ID and name — updated to show plate only (with `|| id` fallback). Vehicle name removed from QR cards.
+- [FIXED 2026-05-02] Driver landing page showed vehicle ID — updated to show plate (with `|| id` fallback).
+- [FIXED 2026-05-02] Admin mileage list showed vehicle ID — updated to show plate. History modal title now shows plate + name.
+- [FIXED 2026-05-02] Vehicle badge on driver choice screen had plate small/orange and name large/white — swapped so plate is large/white/bold and name is small/orange below.
 
 ---
 
@@ -320,22 +349,24 @@ supabase functions deploy send-fault-email
 - Admin dashboard: working ✓
 - 32 vehicles in the database ✓
 - All 32 vehicle photos displaying correctly in admin ✓
-- Full migration script written and run ✓ — all tables and `vehicle_status` view created
+- All 32 vehicles have plate, Make, Model, Year filled in ✓
+- Full migration script written and run ✓
 - RLS enabled and policies applied to all tables ✓
-- Admin authentication: **removed** (see Key decisions)
+- Admin authentication: **removed**
 - `fault-photos` storage bucket created ✓
 - `known_issues` table created ✓
-- `fault_type` and `damage_location` columns added to `faults` table ✓
 - Migrated from Netlify to Cloudflare Pages ✓
+- QR codes show plate only ✓
+- Driver landing page shows plate (large/white/bold) + name (small/orange) ✓
+- Admin mileage list and history modal show plate ✓
+- Mileage history modal working correctly (anon SELECT policy added to mileage_log) ✓
 
 RLS summary:
 - `vehicles`: anon SELECT, authenticated full access
-- `mileage_log`: anon INSERT only, authenticated full access
+- `mileage_log`: anon INSERT + anon SELECT, authenticated full access
 - `inspections`, `cleans`, `faults`: anon INSERT only, authenticated full access
 - `bookings`: authenticated only
 - `known_issues`: anon SELECT (resolved = false only), authenticated full access
-
-Note: `plate` column exists on `vehicles` but is not yet populated for all 32 vehicles.
 
 ---
 
@@ -343,20 +374,26 @@ Note: `plate` column exists on `vehicles` but is not yet populated for all 32 ve
 
 - [x] Run the migration script in Supabase SQL Editor
 - [x] Enable RLS and apply security policies to all tables
-- [x] Add authentication to the admin dashboard
+- [x] Add authentication to the admin dashboard (later removed as unnecessary)
 - [x] Create `fault-photos` storage bucket in Supabase
 - [x] Build driver-facing fault reporting
 - [x] Build driver-facing known issues screen
-- [x] Set up fault report email alerts (Edge Function + Resend + Database Webhook)
-- [ ] Fill in plate, make, model, year for all 32 vehicles
+- [x] Set up fault report email alerts (Edge Function + Gmail SMTP + Database Webhook)
+- [x] Fill in plate, make, model, year for all 32 vehicles
+- [x] Switch fault email from Resend sandbox to Gmail SMTP via App Password
+- [x] Migrate deployment from Netlify to Cloudflare Pages
+- [x] Remove admin authentication
+- [x] Fix vehicle photos — switch from signed URLs to public bucket URLs
+- [x] QR codes show plate only, not vehicle ID or name
+- [x] Driver landing page shows plate instead of vehicle ID
+- [x] Admin mileage list and history modal show plate
+- [x] Fix mileage history modal (add anon SELECT policy to mileage_log)
 - [ ] Add Known Issues management UI to the admin/mechanic dashboard (add, resolve issues per vehicle)
-- [x] Switch fault email from Resend sandbox to Gmail SMTP via App Password (2026-04-30)
-- [x] Migrate deployment from Netlify to Cloudflare Pages (2026-05-02)
-- [x] Remove admin authentication — unnecessary for internal tool (2026-05-02)
-- [x] Fix vehicle photos — switch from signed URLs to public bucket URLs (2026-05-02)
-- [ ] Set up email alerts for inspection threshold breaches (reuse send-fault-email pattern)
+- [ ] Design and agree maintenance task engine schema (`maintenance_log`, `task_rules`) before building
 - [ ] Build Stage 2 driver-facing forms: inspection checklist, deep clean checklist
+- [ ] Build admin to-do/done view for mileage collection and maintenance tasks
 - [ ] Plan admin dashboard rebuild in Vue 3 + Vite (begin after Stage 2 driver forms are built)
+- [ ] Set up email alerts for inspection threshold breaches (reuse send-fault-email pattern)
 
 ---
 
@@ -367,11 +404,9 @@ Vue 3 + Vite is the chosen framework for the admin dashboard rebuild. Key mental
 - **Single File Component (SFC)** = a `.vue` file containing three clearly separated sections: `<template>` (the HTML layout), `<script>` (the logic), and `<style>` (the CSS). Like a well-structured report with a layout section, a logic section, and a formatting section — all in one place.
 - **Component** = a reusable building block, like a subroutine that returns a piece of the UI. Define it once, use it many times.
 - **Props** = parameters passed into a component from its parent. Read-only. Like passing arguments into a subroutine.
-- **Reactive data (`ref`, `reactive`)** = working storage that belongs to a component. When it changes, Vue automatically redraws the relevant part of the UI. No manual DOM manipulation needed — equivalent to a report tool that rerenders the template when the data changes.
+- **Reactive data (`ref`, `reactive`)** = working storage that belongs to a component. When it changes, Vue automatically redraws the relevant part of the UI. No manual DOM manipulation needed.
 - **`onMounted`** = code that runs when the component first appears on screen. This is where Supabase queries go — equivalent to OPEN/READ at the start of a program.
 - **Directives** = special HTML attributes Vue provides: `v-for` loops over a list (like a DO loop in RPG), `v-if` shows/hides elements conditionally, `v-model` binds a form input to a variable two-ways.
-
-The key shift from vanilla JS: instead of manually finding and updating DOM elements when data changes, you update reactive data and Vue handles the redraw automatically.
 
 ---
 
@@ -395,7 +430,6 @@ Everything this web app needs to do is already working inside Martin's **weekly-
 - The Coda doc grew in complexity while Martin was learning Coda, so its data structures may not be optimal
 - Martin is open to suggestions on how to best structure the Supabase database — don't just mirror the Coda structure blindly
 - When planning new features, ask Martin to share the relevant part of the Coda doc (via public link, CSV export, or description) so we can understand the intended behaviour before building
-- Coda doc access: no direct MCP connector available — use a public share link, CSV export, or description
 
 ---
 
@@ -408,7 +442,7 @@ Martin has a strong background in old-school programming (1980s–2000s) includi
 - Don't assume knowledge of modern jargon — explain terms like "component", "bundle", "environment variable", "npm package", "API", etc. when they come up
 - Be clear about the *why* behind things, not just the *how*
 - He is comfortable with structured logic, data, and SQL — lean into that
-- He uses Claude Desktop with the filesystem MCP and Supabase MCP connectors connected
+- He uses Claude with the filesystem MCP and Supabase MCP connectors connected
 - GitHub connector is not available — cannot browse repos directly
 - Sessions expire frequently mid-task — always write files incrementally and confirm each one before moving to the next where possible
 
