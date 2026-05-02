@@ -59,8 +59,8 @@ When planning each new stage, review the schema before writing any code.
 
 ## Live URLs
 
-- **Driver app:** https://weekly-mileage.netlify.app/?vehicle=VH001
-- **Admin dashboard:** https://weekly-mileage.netlify.app/admin/
+- **Driver app:** https://fleet-mileage.pages.dev/?vehicle=VH001
+- **Admin dashboard:** https://fleet-mileage.pages.dev/admin/
 
 ---
 
@@ -69,7 +69,8 @@ When planning each new stage, review the schema before writing any code.
 - **Frontend:** Vanilla JS, Vite (no framework) — current
 - **Backend/DB:** Supabase (project: `fleet-mileage-personal`, ID: `xlrtvtqwxyojhvzmsakz`, region: eu-central-2)
 - **Storage:** Supabase Storage — buckets: `vehicle-images`, `fault-photos`
-- **Deployment:** Netlify (auto-deploys on git push)
+- **Deployment:** Cloudflare Pages (auto-deploys on git push to GitHub)
+- **Previous deployment:** Netlify — migrated away 2026-05-02 after exhausting free build minutes (500/month). Git repo disconnected from Netlify.
 - **Fonts:** Barlow + Barlow Condensed (driver app), Syne + DM Mono (admin)
 - **Packages:** `@supabase/supabase-js`, `qrcode-generator`, `vite`
 
@@ -257,7 +258,7 @@ Three tabs:
 - **Mileage** — lists all vehicles with current mileage, click to view full history modal
 - **QR Codes** — generates QR codes client-side (canvas), printable
 
-Photo uploads go to Supabase Storage bucket `vehicle-images`. The filename saved is `{id}.{ext}` (e.g. `VH001.jpg`). The `image_url` column stores this path (not the full URL). Signed URLs are generated at runtime for display.
+Photo uploads go to Supabase Storage bucket `vehicle-images`. The filename saved is `{id}.{ext}` (e.g. `VH001.jpg`). The `image_url` column stores just the filename (e.g. `01 Grey Octavia.jpg`). Public URLs are constructed at runtime in `admin.js` as `${SUPABASE_URL}/storage/v1/object/public/vehicle-images/${encodeURIComponent(filename)}`. The `vehicle-images` bucket is **public** (set 2026-05-02).
 
 ---
 
@@ -269,9 +270,10 @@ Photo uploads go to Supabase Storage bucket `vehicle-images`. The filename saved
 - Driver app uses `current_mileage` field directly from `vehicles` table for the "last recorded" display
 - QR codes generated client-side using `qrcode-generator`, rendered to `<canvas>`
 - No authentication on the driver app (public, URL-gated by vehicle ID)
-- Admin uses magic link authentication via Supabase Auth
+- No authentication on the admin dashboard — removed 2026-05-02. The app is internal-only, the admin URL is not publicly advertised, and the user base is Martin + occasional temporary assistant. The risk of unauthorised access is negligible for this use case.
+- Previously used Supabase Auth magic link — removed because: (1) Supabase free tier has a 2 emails/hour rate limit which caused friction during development, (2) auth adds no meaningful security for this internal tool
 - Tyre alert threshold: < 1.6mm (UK legal minimum)
-- All costs: £0 — entire stack runs on free tiers (Supabase, Netlify, Gmail SMTP for email)
+- All costs: £0 — entire stack runs on free tiers (Supabase, Cloudflare Pages, Gmail SMTP for email)
 - `damage_location` stored as jsonb `{x, y, view}` where x/y are percentage positions on the SVG viewBox, and view is 'top', 'side', or 'windscreen'
 
 ---
@@ -301,14 +303,15 @@ supabase functions deploy send-fault-email
 
 ## Known issues / bugs fixed
 
-- [FIXED 2026-04-26] `admin.js` used `photo_url` in three places instead of `image_url`:
-  - `loadAll()` signed URL condition
-  - `deleteVehicle()` storage removal
-  - `insert()` when adding a new vehicle
+- [FIXED 2026-04-26] `admin.js` used `photo_url` in three places instead of `image_url`
+- [FIXED 2026-05-02] `vehicle-images` bucket was private — `getPublicUrl` was silently failing, returning just the filename, causing 404s. Fixed by setting `public = true` on the bucket via SQL.
+- [FIXED 2026-05-02] All 32 `image_url` values in `vehicles` table were full signed URLs — stripped back to plain filenames via SQL. Public URL now constructed at runtime in `admin.js`.
+- [FIXED 2026-05-02] One vehicle (`V010`) had a double-concatenated signed URL stored in `image_url` — caused by a duplicate save during upload. Resolved by regenerating the signed URL.
+- [FIXED 2026-05-02] Admin auth removed — Supabase magic link rate limit (2/hour) was causing friction. Auth unnecessary for this internal tool.
 
 ---
 
-## Current status (as of 2026-04-30)
+## Current status (as of 2026-05-02)
 
 - Driver app choice screen: working ✓
 - Mileage submission: working ✓
@@ -316,12 +319,14 @@ supabase functions deploy send-fault-email
 - Known issues (driver view): working ✓
 - Admin dashboard: working ✓
 - 32 vehicles in the database ✓
+- All 32 vehicle photos displaying correctly in admin ✓
 - Full migration script written and run ✓ — all tables and `vehicle_status` view created
 - RLS enabled and policies applied to all tables ✓
-- Admin authentication (magic link via Supabase Auth) ✓
+- Admin authentication: **removed** (see Key decisions)
 - `fault-photos` storage bucket created ✓
-- `known_issues` table created ✓ (migration run 2026-04-29)
+- `known_issues` table created ✓
 - `fault_type` and `damage_location` columns added to `faults` table ✓
+- Migrated from Netlify to Cloudflare Pages ✓
 
 RLS summary:
 - `vehicles`: anon SELECT, authenticated full access
@@ -346,6 +351,9 @@ Note: `plate` column exists on `vehicles` but is not yet populated for all 32 ve
 - [ ] Fill in plate, make, model, year for all 32 vehicles
 - [ ] Add Known Issues management UI to the admin/mechanic dashboard (add, resolve issues per vehicle)
 - [x] Switch fault email from Resend sandbox to Gmail SMTP via App Password (2026-04-30)
+- [x] Migrate deployment from Netlify to Cloudflare Pages (2026-05-02)
+- [x] Remove admin authentication — unnecessary for internal tool (2026-05-02)
+- [x] Fix vehicle photos — switch from signed URLs to public bucket URLs (2026-05-02)
 - [ ] Set up email alerts for inspection threshold breaches (reuse send-fault-email pattern)
 - [ ] Build Stage 2 driver-facing forms: inspection checklist, deep clean checklist
 - [ ] Plan admin dashboard rebuild in Vue 3 + Vite (begin after Stage 2 driver forms are built)
@@ -370,11 +378,13 @@ The key shift from vanilla JS: instead of manually finding and updating DOM elem
 ## Git workflow
 
 ```bash
-git pull          # start of session
+git pull          # start of session — especially important when working across multiple PCs
 git add .
 git commit -m "describe change"
-git push          # Netlify auto-deploys
+git push          # Cloudflare Pages auto-deploys
 ```
+
+**Note:** Always `git pull` before starting work on a different PC to avoid divergent branch conflicts.
 
 ---
 
