@@ -120,7 +120,7 @@ function renderMileageList() {
     </div>
     ${vehicles.map(v => `
       <div class="mileage-row">
-        <span class="mileage-row-id">${v.id}</span>
+        <span class="mileage-row-id">${v.plate || v.id}</span>
         <span class="mileage-row-name">${v.name}</span>
         <span class="mileage-row-miles">${v.current_mileage?.toLocaleString() ?? '—'} <span>mi</span></span>
         <span class="mileage-row-action">
