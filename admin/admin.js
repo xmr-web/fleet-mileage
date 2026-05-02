@@ -86,7 +86,7 @@ function renderVehicleGrid() {
         : `<div class="vehicle-card-photo placeholder">🚗</div>`
       }
       <div class="vehicle-card-body">
-        <div class="vehicle-card-id">${v.id}</div>
+        <div class="vehicle-card-id">${v.plate}</div>
         <div class="vehicle-card-name">${v.name}</div>
         <div class="vehicle-card-mileage">Current mileage: <strong>${v.current_mileage?.toLocaleString() ?? '—'}</strong></div>
         <div class="vehicle-card-actions">
