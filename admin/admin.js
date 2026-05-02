@@ -147,8 +147,7 @@ function renderQRGrid() {
   grid.innerHTML = vehicles.map(v => `
     <div class="qr-card" id="qr-card-${v.id}">
       <canvas id="qr-canvas-${v.id}"></canvas>
-      <div class="qr-card-id">${v.id}</div>
-      <div class="qr-card-name">${v.name}</div>
+      <div class="qr-card-id">${v.plate || v.id}</div>
     </div>
   `).join('');
 

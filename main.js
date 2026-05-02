@@ -77,7 +77,7 @@ async function init() {
 
 // ── Populate choice screen ────────────────────────────────────
 function populateChoice() {
-  vehicleIdEl.textContent   = vehicle.id
+ vehicleIdEl.textContent   = vehicle.plate || vehicle.id
   vehicleNameEl.textContent = vehicle.name
 
   const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/vehicle-images`
@@ -93,7 +93,7 @@ function populateChoice() {
   }
 
   // Also populate mileage screen header
-  vehicleIdEl2.textContent   = vehicle.id
+  vehicleIdEl2.textContent   = vehicle.plate || vehicle.id
   vehicleNameEl2.textContent = vehicle.name
   if (photoUrl) {
     vehiclePhoto2.src = photoUrl
