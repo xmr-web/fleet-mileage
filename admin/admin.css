@@ -461,7 +461,283 @@ body {
   text-align: center;
 }
 
-/* ── Print Styles ── */
+/* ── Collection UI ── */
+.week-badge {
+  background: var(--accent);
+  color: #0e0f11;
+  font-family: var(--font-head);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.3rem 0.8rem;
+  border-radius: 100px;
+  text-transform: uppercase;
+}
+
+.collection-summary {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-bottom: 1.75rem;
+  min-height: 1.4em;
+}
+
+.all-done-banner {
+  color: #22a05a;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.collection-section {
+  margin-bottom: 2rem;
+}
+
+.collection-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+/* When used as a toggle button */
+button.collection-section-header {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  width: 100%;
+  text-align: left;
+}
+button.collection-section-header:hover .collection-section-label {
+  color: var(--text);
+}
+
+.collection-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: color 0.15s;
+}
+
+.pending-label { color: var(--text); }
+.done-label    { color: var(--text-muted); }
+
+.collection-section-count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--surface2);
+  color: var(--text-muted);
+  padding: 0.15rem 0.55rem;
+  border-radius: 100px;
+  min-width: 1.6rem;
+  text-align: center;
+}
+
+.toggle-chevron {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: transform 0.2s;
+  display: inline-block;
+}
+
+.collection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.collection-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: grid;
+  grid-template-columns: 90px 1fr 130px 80px;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.1rem;
+  transition: border-color 0.15s;
+}
+.collection-row:hover { border-color: var(--accent); }
+
+.collection-row--done {
+  grid-template-columns: 90px 1fr 130px 90px 80px;
+  opacity: 0.7;
+}
+.collection-row--done:hover { border-color: var(--border); opacity: 1; }
+
+.cr-plate {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.cr-name {
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.cr-mileage {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.done-mileage {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.cr-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.btn-enter {
+  background: var(--accent);
+  color: #0e0f11;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.btn-enter:hover  { background: var(--accent-dk); }
+.btn-enter:active { transform: scale(0.96); }
+
+.collection-empty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 1rem 0;
+}
+
+/* ── Mileage entry modal ── */
+.modal-vehicle-plate {
+  font-family: var(--font-head);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.modal-vehicle-name {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.entry-prev-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.7rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.entry-prev-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+
+.entry-prev-value {
+  font-family: var(--font-head);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.entry-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+#entry-mileage-input {
+  width: 100%;
+  font-family: var(--font-head);
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text);
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem 3.5rem 0.9rem 1rem;
+  text-align: right;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+#entry-mileage-input::-webkit-inner-spin-button,
+#entry-mileage-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+#entry-mileage-input::placeholder { color: var(--border); }
+#entry-mileage-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(74,127,165,0.15);
+}
+#entry-mileage-input.entry-input--error {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(220,38,38,0.1);
+}
+
+.entry-unit {
+  position: absolute;
+  right: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.entry-validation {
+  font-size: 0.8rem;
+  color: var(--danger);
+  min-height: 1.2em;
+  margin-bottom: 1rem;
+}
+
+.entry-confirm-btn {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+}
+
+/* ── Mobile: collection rows stack ── */
+@media (max-width: 768px) {
+  .collection-row {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 0.4rem 0.75rem;
+  }
+  .cr-plate  { grid-column: 1; grid-row: 1; }
+  .cr-name   { grid-column: 2; grid-row: 1; }
+  .cr-mileage { grid-column: 1; grid-row: 2; text-align: left; }
+  .btn-enter { grid-column: 2; grid-row: 2; justify-self: end; }
+
+  .collection-row--done {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+  }
+  .cr-time   { grid-column: 1; grid-row: 2; }
+  .collection-row--done .btn-icon { grid-column: 2; grid-row: 2; justify-self: end; }
+}
 @media print {
   body { background: #fff; color: #000; }
   .site-header, .panel-header .btn-primary, .qr-hint { display: none; }

@@ -1,17 +1,6 @@
 /**
  * Fleet Admin Dashboard
  * Tabs: Vehicles | Mileage | QR Codes
- *
- * Depends on:
- *   - your existing supabaseClient.js  (exports `supabase`)
- *   - qrcode-generator npm package (installed separately)
- *
- * Supabase tables used:
- *   vehicles  (id, name, photo_url, current_mileage)
- *   mileage_log (vehicle_id, mileage, submitted_at)
- *
- * Storage:
- *   bucket: vehicle-images (private — uses signed URLs)
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -25,12 +14,17 @@ const BASE_URL = 'https://fleet-mileage.pages.dev';
 // ── State ──────────────────────────────────────────────────────────────────
 let vehicles = [];
 let pendingDeleteId = null;
+let pendingVehicles = [];
+let doneVehicles = [];
+let entryVehicle = null; // vehicle currently open in the entry modal
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initTabs();
   initVehicleForm();
   initModals();
+  initEntryModal();
+  initDoneToggle();
   loadAll();
 });
 
@@ -58,15 +52,14 @@ async function loadAll() {
     return;
   }
 
-  // Construct public URLs directly (bucket is public, no expiry)
   const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/vehicle-images`;
   vehicles = data.map(v => ({
     ...v,
     resolvedUrl: v.image_url ? `${STORAGE_BASE}/${encodeURIComponent(v.image_url)}` : null
   }));
- console.log('Vehicles loaded:', vehicles);  // ← add here
+
   renderVehicleGrid();
-  renderMileageList();
+  await loadCollectionData();
   renderQRGrid();
 }
 
@@ -83,12 +76,12 @@ function renderVehicleGrid() {
     <div class="vehicle-card" data-id="${v.id}">
       ${v.resolvedUrl
         ? `<img class="vehicle-card-photo" src="${v.resolvedUrl}" alt="${v.name}" />`
-        : `<div class="vehicle-card-photo placeholder">🚗</div>`
+        : `<div class="vehicle-card-photo placeholder">&#x1F697;</div>`
       }
       <div class="vehicle-card-body">
         <div class="vehicle-card-id">${v.plate}</div>
         <div class="vehicle-card-name">${v.name}</div>
-        <div class="vehicle-card-mileage">Current mileage: <strong>${v.current_mileage?.toLocaleString() ?? '—'}</strong></div>
+        <div class="vehicle-card-mileage">Current mileage: <strong>${v.current_mileage?.toLocaleString() ?? '&#x2014;'}</strong></div>
         <div class="vehicle-card-actions">
           <button class="btn-icon danger" data-action="delete" data-id="${v.id}">Delete</button>
         </div>
@@ -96,43 +89,272 @@ function renderVehicleGrid() {
     </div>
   `).join('');
 
-  // Delete buttons
   grid.querySelectorAll('[data-action="delete"]').forEach(btn => {
     btn.addEventListener('click', () => openDeleteModal(btn.dataset.id));
   });
 }
 
-// ── Mileage List ───────────────────────────────────────────────────────────
-function renderMileageList() {
-  const list = document.getElementById('mileage-list');
+// ── Fleet week helpers ─────────────────────────────────────────────────────
+// Offset by -1 day: Monday morning still counts as the previous fleet week,
+// matching the Friday–Monday collection window.
+function getFleetWeek() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return isoWeek(d);
+}
 
-  if (vehicles.length === 0) {
-    list.innerHTML = '<p class="empty-state">No vehicles found.</p>';
-    return;
+function isoWeek(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  return { week, year: date.getUTCFullYear() };
+}
+
+// Even fleet-weeks = all 32 vehicles; odd = 28 (fortnightly vehicles skipped)
+function isFullWeek(weekNum) {
+  return weekNum % 2 === 0;
+}
+
+// ── Mileage collection UI ──────────────────────────────────────────────────
+async function loadCollectionData() {
+  const { week, year } = getFleetWeek();
+  const fullWeek = isFullWeek(week);
+  const expectedCount = fullWeek ? 32 : 28;
+
+  // Week badge
+  document.getElementById('week-badge').textContent = `Week ${week}`;
+
+  // Date range: Friday of fleet week to Monday of next week
+  // ISO week starts Monday. Friday = Monday + 4 days.
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const startOfWeek1 = new Date(jan4);
+  startOfWeek1.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7));
+  const monday = new Date(startOfWeek1);
+  monday.setUTCDate(startOfWeek1.getUTCDate() + (week - 1) * 7);
+  const friday = new Date(monday);
+  friday.setUTCDate(monday.getUTCDate() + 4);
+  const nextMonday = new Date(monday);
+  nextMonday.setUTCDate(monday.getUTCDate() + 7);
+
+  const fmtShort = d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  document.getElementById('collection-summary').textContent =
+    `${expectedCount} vehicles expected \u00b7 ${fmtShort(friday)}\u2013${fmtShort(nextMonday)}`;
+
+  // Fetch all submissions from Friday of this fleet week onwards
+  const { data: submissions } = await supabase
+    .from('mileage_log')
+    .select('vehicle_id, mileage, submitted_at, driver_name')
+    .gte('submitted_at', friday.toISOString())
+    .order('submitted_at', { ascending: false });
+
+  // Determine which are in this fleet week (using the same -1 day offset)
+  const doneIds = new Set();
+  const doneByVehicle = {};
+  if (submissions) {
+    for (const row of submissions) {
+      const { week: rowWeek, year: rowYear } = isoWeek(
+        new Date(new Date(row.submitted_at).getTime() - 86400000)
+      );
+      if (rowWeek === week && rowYear === year) {
+        doneIds.add(row.vehicle_id);
+        if (!doneByVehicle[row.vehicle_id]) doneByVehicle[row.vehicle_id] = row;
+      }
+    }
   }
 
-  list.innerHTML = `
-    <div class="mileage-list-header">
-      <span>ID</span>
-      <span>Name</span>
-      <span style="text-align:right">Current Mileage</span>
-      <span></span>
+  // Split into pending / done, filtering out fortnightly vehicles on odd weeks
+  const applicable = vehicles.filter(v =>
+    v.collection_frequency === 'weekly' || fullWeek
+  );
+
+  pendingVehicles = applicable.filter(v => !doneIds.has(v.id));
+  doneVehicles    = applicable
+    .filter(v => doneIds.has(v.id))
+    .map(v => ({ ...v, _submission: doneByVehicle[v.id] }));
+
+  renderPendingList();
+  renderDoneList();
+  updateCounts();
+}
+
+function updateCounts() {
+  document.getElementById('pending-count').textContent = pendingVehicles.length;
+  document.getElementById('done-count').textContent    = doneVehicles.length;
+
+  if (pendingVehicles.length === 0 && doneVehicles.length > 0) {
+    const { week } = getFleetWeek();
+    document.getElementById('collection-summary').innerHTML =
+      `<span class="all-done-banner">&#x2713; Week ${week} complete &mdash; all vehicles collected</span>`;
+  }
+}
+
+function renderPendingList() {
+  const list = document.getElementById('pending-list');
+  if (pendingVehicles.length === 0) {
+    list.innerHTML = '<p class="collection-empty">All done for this week.</p>';
+    return;
+  }
+  list.innerHTML = pendingVehicles.map(v => `
+    <div class="collection-row" data-id="${v.id}">
+      <span class="cr-plate">${v.plate}</span>
+      <span class="cr-name">${v.name}</span>
+      <span class="cr-mileage">${v.current_mileage?.toLocaleString('en-GB') ?? '&#x2014;'} mi</span>
+      <button class="btn-enter" data-action="enter" data-id="${v.id}">Enter</button>
     </div>
-    ${vehicles.map(v => `
-      <div class="mileage-row">
-        <span class="mileage-row-id">${v.plate || v.id}</span>
-        <span class="mileage-row-name">${v.name}</span>
-        <span class="mileage-row-miles">${v.current_mileage?.toLocaleString() ?? '—'} <span>mi</span></span>
-        <span class="mileage-row-action">
-          <button class="btn-icon" data-action="history" data-id="${v.id}" data-name="${v.name}" data-plate="${v.plate || v.id}">View history</button>
-        </span>
+  `).join('');
+
+  list.querySelectorAll('[data-action="enter"]').forEach(btn => {
+    btn.addEventListener('click', () => openEntryModal(btn.dataset.id));
+  });
+}
+
+function renderDoneList() {
+  const list = document.getElementById('done-list');
+  if (doneVehicles.length === 0) {
+    list.innerHTML = '<p class="collection-empty">None yet.</p>';
+    return;
+  }
+  list.innerHTML = doneVehicles.map(v => {
+    const sub = v._submission;
+    const milesRecorded = sub?.mileage?.toLocaleString('en-GB') ?? '&#x2014;';
+    const time = sub?.submitted_at ? formatTime(sub.submitted_at) : '&#x2014;';
+    return `
+      <div class="collection-row collection-row--done" data-id="${v.id}">
+        <span class="cr-plate">${v.plate}</span>
+        <span class="cr-name">${v.name}</span>
+        <span class="cr-mileage done-mileage">${milesRecorded} mi</span>
+        <span class="cr-time">${time}</span>
+        <button class="btn-icon" data-action="history" data-id="${v.id}" data-name="${v.name}" data-plate="${v.plate}">History</button>
       </div>
-    `).join('')}
-  `;
+    `;
+  }).join('');
 
   list.querySelectorAll('[data-action="history"]').forEach(btn => {
-    btn.addEventListener('click', () => openHistoryModal(btn.dataset.id, btn.dataset.name, btn.dataset.plate));
+    btn.addEventListener('click', () =>
+      openHistoryModal(btn.dataset.id, btn.dataset.name, btn.dataset.plate)
+    );
   });
+}
+
+function initDoneToggle() {
+  document.getElementById('done-toggle').addEventListener('click', () => {
+    const list    = document.getElementById('done-list');
+    const chevron = document.getElementById('done-chevron');
+    const hidden  = list.classList.toggle('hidden');
+    chevron.style.transform = hidden ? '' : 'rotate(90deg)';
+  });
+}
+
+// ── Entry modal ────────────────────────────────────────────────────────────
+function openEntryModal(vehicleId) {
+  entryVehicle = vehicles.find(v => v.id === vehicleId);
+  if (!entryVehicle) return;
+
+  document.getElementById('entry-plate').textContent = entryVehicle.plate;
+  document.getElementById('entry-name').textContent  = entryVehicle.name;
+  document.getElementById('entry-prev-mileage').textContent =
+    (entryVehicle.current_mileage ?? 0).toLocaleString('en-GB') + ' mi';
+
+  const input = document.getElementById('entry-mileage-input');
+  input.value = '';
+  input.classList.remove('entry-input--error');
+  document.getElementById('entry-validation').textContent = '';
+  document.getElementById('entry-confirm-btn').disabled = false;
+  document.getElementById('entry-confirm-btn').textContent = 'Confirm Mileage';
+
+  document.getElementById('mileage-entry-modal').classList.remove('hidden');
+  setTimeout(() => input.focus(), 100);
+}
+
+function initEntryModal() {
+  const modal      = document.getElementById('mileage-entry-modal');
+  const input      = document.getElementById('entry-mileage-input');
+  const validEl    = document.getElementById('entry-validation');
+  const confirmBtn = document.getElementById('entry-confirm-btn');
+
+  document.getElementById('mileage-entry-close').addEventListener('click', () => {
+    modal.classList.add('hidden');
+    entryVehicle = null;
+  });
+  modal.addEventListener('click', e => {
+    if (e.target === modal) { modal.classList.add('hidden'); entryVehicle = null; }
+  });
+
+  input.addEventListener('input', () => {
+    const val  = parseInt(input.value, 10);
+    const prev = entryVehicle?.current_mileage ?? 0;
+    if (input.value === '') {
+      validEl.textContent = '';
+      input.classList.remove('entry-input--error');
+      return;
+    }
+    if (isNaN(val) || val < 0) { showEntryError('Please enter a valid mileage.'); return; }
+    if (val < prev) {
+      showEntryError(`Cannot be less than last reading (${prev.toLocaleString('en-GB')} mi).`);
+      return;
+    }
+    validEl.textContent = '';
+    input.classList.remove('entry-input--error');
+  });
+
+  confirmBtn.addEventListener('click', async () => {
+    if (!entryVehicle) return;
+    const val  = parseInt(input.value, 10);
+    const prev = entryVehicle.current_mileage ?? 0;
+
+    if (!input.value || isNaN(val)) {
+      showEntryError('Please enter a mileage reading.');
+      input.focus();
+      return;
+    }
+    if (val < prev) {
+      showEntryError(`Cannot be less than last reading (${prev.toLocaleString('en-GB')} mi).`);
+      return;
+    }
+
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Saving\u2026';
+
+    const { error: logError } = await supabase
+      .from('mileage_log')
+      .insert([{ vehicle_id: entryVehicle.id, mileage: val, driver_name: 'Garage' }]);
+
+    if (logError) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Confirm Mileage';
+      showEntryError('Failed to save. Please try again.');
+      console.error(logError);
+      return;
+    }
+
+    await supabase
+      .from('vehicles')
+      .update({ current_mileage: val })
+      .eq('id', entryVehicle.id);
+
+    // Update local state so done list shows correct mileage without a full reload
+    const idx = vehicles.findIndex(v => v.id === entryVehicle.id);
+    if (idx !== -1) vehicles[idx].current_mileage = val;
+
+    modal.classList.add('hidden');
+    entryVehicle = null;
+
+    // Refresh collection lists
+    await loadCollectionData();
+
+    // Auto-expand done list so the garage assistant can see the entry landed
+    const doneList = document.getElementById('done-list');
+    if (doneList.classList.contains('hidden')) {
+      doneList.classList.remove('hidden');
+      document.getElementById('done-chevron').style.transform = 'rotate(90deg)';
+    }
+  });
+
+  function showEntryError(msg) {
+    validEl.textContent = msg;
+    input.classList.add('entry-input--error');
+  }
 }
 
 // ── QR Grid ────────────────────────────────────────────────────────────────
@@ -208,7 +430,6 @@ function initVehicleForm() {
     statusEl.classList.add('hidden');
   });
 
-  // Photo preview
   photoInput.addEventListener('change', () => {
     const file = photoInput.files[0];
     if (!file) return;
@@ -225,7 +446,7 @@ function initVehicleForm() {
     e.preventDefault();
     const submitBtn = document.getElementById('submit-vehicle');
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Saving…';
+    submitBtn.textContent = 'Saving\u2026';
     setStatus('', '');
 
     const id      = document.getElementById('vehicle-id').value.trim().toUpperCase();
@@ -233,7 +454,6 @@ function initVehicleForm() {
     const mileage = parseInt(document.getElementById('vehicle-mileage').value, 10);
     const file    = photoInput.files[0];
 
-    // Validate ID not already taken
     if (vehicles.find(v => v.id === id)) {
       setStatus(`Vehicle ID "${id}" already exists.`, 'error');
       submitBtn.disabled = false;
@@ -244,7 +464,6 @@ function initVehicleForm() {
     try {
       let photoPath = null;
 
-      // 1. Upload photo if provided
       if (file) {
         const ext = file.name.split('.').pop();
         const filename = `${id}.${ext}`;
@@ -252,16 +471,13 @@ function initVehicleForm() {
           .storage
           .from('vehicle-images')
           .upload(filename, file, { upsert: true });
-
         if (uploadError) throw uploadError;
         photoPath = filename;
       }
 
-      // 2. Insert vehicle row
       const { error: insertError } = await supabase
         .from('vehicles')
         .insert({ id, name, image_url: photoPath, current_mileage: mileage });
-
       if (insertError) throw insertError;
 
       setStatus('Vehicle saved!', 'success');
@@ -295,17 +511,17 @@ function initVehicleForm() {
 
 // ── History Modal ──────────────────────────────────────────────────────────
 async function openHistoryModal(vehicleId, vehicleName, vehiclePlate) {
-  const modal   = document.getElementById('history-modal');
-  const title   = document.getElementById('modal-title');
-  const body    = document.getElementById('modal-body');
+  const modal = document.getElementById('history-modal');
+  const title = document.getElementById('modal-title');
+  const body  = document.getElementById('modal-body');
 
-  title.textContent = `${vehicleName} (${vehiclePlate}) — Mileage History`;
-  body.innerHTML = '<div class="loading-state">Loading…</div>';
+  title.textContent = `${vehicleName} (${vehiclePlate}) \u2014 Mileage History`;
+  body.innerHTML = '<div class="loading-state">Loading\u2026</div>';
   modal.classList.remove('hidden');
 
   const { data, error } = await supabase
     .from('mileage_log')
-    .select('mileage, submitted_at')
+    .select('mileage, submitted_at, driver_name')
     .eq('vehicle_id', vehicleId)
     .order('submitted_at', { ascending: false });
 
@@ -320,6 +536,7 @@ async function openHistoryModal(vehicleId, vehicleName, vehiclePlate) {
         <tr>
           <th>Mileage</th>
           <th>Submitted</th>
+          <th>By</th>
         </tr>
       </thead>
       <tbody>
@@ -327,6 +544,7 @@ async function openHistoryModal(vehicleId, vehicleName, vehiclePlate) {
           <tr>
             <td>${row.mileage?.toLocaleString()} mi</td>
             <td>${formatDate(row.submitted_at)}</td>
+            <td>${row.driver_name ?? '\u2014'}</td>
           </tr>
         `).join('')}
       </tbody>
@@ -344,7 +562,6 @@ function openDeleteModal(vehicleId) {
 }
 
 function initModals() {
-  // History modal close
   document.getElementById('modal-close').addEventListener('click', () => {
     document.getElementById('history-modal').classList.add('hidden');
   });
@@ -352,7 +569,6 @@ function initModals() {
     if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
   });
 
-  // Delete modal
   document.getElementById('delete-modal-close').addEventListener('click', () => {
     document.getElementById('delete-modal').classList.add('hidden');
   });
@@ -369,15 +585,11 @@ function initModals() {
 async function deleteVehicle(vehicleId) {
   const vehicle = vehicles.find(v => v.id === vehicleId);
 
-  // Delete photo from storage if it exists
   if (vehicle?.image_url) {
     await supabase.storage.from('vehicle-images').remove([vehicle.image_url]);
   }
-
-  // Delete mileage log entries
   await supabase.from('mileage_log').delete().eq('vehicle_id', vehicleId);
 
-  // Delete vehicle row
   const { error } = await supabase.from('vehicles').delete().eq('id', vehicleId);
   if (error) { console.error('Delete failed:', error); return; }
 
@@ -386,9 +598,17 @@ async function deleteVehicle(vehicleId) {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function formatDate(iso) {
-  if (!iso) return '—';
+  if (!iso) return '\u2014';
   return new Intl.DateTimeFormat('en-GB', {
     day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  }).format(new Date(iso));
+}
+
+function formatTime(iso) {
+  if (!iso) return '\u2014';
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit', month: 'short',
     hour: '2-digit', minute: '2-digit'
   }).format(new Date(iso));
 }

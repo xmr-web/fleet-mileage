@@ -80,10 +80,30 @@
         <!-- ── MILEAGE TAB ── -->
         <section class="tab-panel" id="tab-mileage">
           <div class="panel-header">
-            <h1>Mileage</h1>
+            <h1 id="mileage-tab-title">Mileage Collection</h1>
+            <span class="week-badge" id="week-badge"></span>
           </div>
-          <div class="mileage-list" id="mileage-list">
-            <div class="loading-state">Loading mileage data…</div>
+          <div class="collection-summary" id="collection-summary"></div>
+
+          <!-- Pending list -->
+          <div class="collection-section">
+            <div class="collection-section-header">
+              <span class="collection-section-label pending-label">Pending</span>
+              <span class="collection-section-count" id="pending-count"></span>
+            </div>
+            <div class="collection-list" id="pending-list">
+              <div class="loading-state">Loading…</div>
+            </div>
+          </div>
+
+          <!-- Done list (collapsible) -->
+          <div class="collection-section" id="done-section">
+            <button class="collection-section-header collection-section-toggle" id="done-toggle">
+              <span class="collection-section-label done-label">Done this week</span>
+              <span class="collection-section-count" id="done-count"></span>
+              <span class="toggle-chevron" id="done-chevron">›</span>
+            </button>
+            <div class="collection-list hidden" id="done-list"></div>
           </div>
         </section>
 
@@ -100,6 +120,39 @@
         </section>
 
       </main>
+    </div>
+
+    <!-- Mileage entry modal -->
+    <div class="modal-overlay hidden" id="mileage-entry-modal">
+      <div class="modal modal--sm">
+        <div class="modal-header">
+          <div>
+            <div class="modal-vehicle-plate" id="entry-plate"></div>
+            <div class="modal-vehicle-name" id="entry-name"></div>
+          </div>
+          <button class="modal-close" id="mileage-entry-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="entry-prev-row">
+            <span class="entry-prev-label">Last recorded</span>
+            <span class="entry-prev-value" id="entry-prev-mileage">—</span>
+          </div>
+          <div class="entry-input-wrap">
+            <input
+              type="number"
+              id="entry-mileage-input"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              placeholder="0"
+              min="0"
+              autocomplete="off"
+            />
+            <span class="entry-unit">mi</span>
+          </div>
+          <p class="entry-validation" id="entry-validation"></p>
+          <button class="btn-primary entry-confirm-btn" id="entry-confirm-btn">Confirm Mileage</button>
+        </div>
+      </div>
     </div>
 
     <!-- History modal -->
