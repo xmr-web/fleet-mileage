@@ -208,6 +208,15 @@ Vehicle photos: filename saved as `{id}.{ext}` in `image_url`. Public URL constr
 - Gmail App Password stored as Edge Function secret `GMAIL_APP_PASSWORD`
 - Redeploy: `supabase functions deploy send-fault-email`
 
+### Mileage collection complete email *(working 2026-05-03)*
+- Edge Function: `send-mileage-complete-email`
+- Database Webhook: `on_mileage_inserted` — fires on INSERT to `mileage_log`
+- Checks if all applicable vehicles for the current fleet week have been collected
+- If complete: sends summary email (mechanic TO, admin CC) with plate, name, mileage, time recorded for all vehicles
+- Duplicate prevention: inserts row into `mileage_collection_alerts` (unique on fleet_week + fleet_year) before sending — unique violation = already sent
+- Same Gmail SMTP pattern as fault emails
+- Subject: `Week N Mileage Collection Complete - N vehicles`
+
 ### Maintenance threshold alerts *(planned — Stage 2)*
 - Same pattern as fault emails
 - Webhook on INSERT to `maintenance_log`
@@ -251,7 +260,8 @@ Vehicle photos: filename saved as `{id}.{ext}` in `image_url`. Public URL constr
 - [x] adblue_unit populated for all 32 vehicles
 - [x] task_rules seeded correctly
 - [ ] Add Known Issues management UI to admin dashboard
-- [ ] Build garage assistant mileage collection UI (list-driven, pending/done, week-based)
+- [x] Build garage assistant mileage collection UI (list-driven, pending/done, week-based)
+- [x] "All done" email to fleet mechanic when mileage collection complete
 - [ ] Build Stage 2 driver-facing forms: engine check, tyre check, AdBlue check, light check, deep clean
 - [ ] Improve AdBlue fault report flow — capture exact miles + tank space
 - [ ] Build admin maintenance dashboard: overdue list, fluid gauges, AdBlue speedometer, tyre depths

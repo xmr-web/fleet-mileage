@@ -57,7 +57,7 @@
 | vehicle_id | text | FK → vehicles.id |
 | mileage | integer | |
 | submitted_at | timestamptz | Default now() |
-| driver_name | text | Nullable |
+| driver_name | text | Nullable. 'Garage' for garage assistant entries; null for driver app entries until driver name capture is added. Added 2026-05-03. |
 | notes | text | Nullable |
 
 RLS: anon INSERT + anon SELECT, authenticated full access.
