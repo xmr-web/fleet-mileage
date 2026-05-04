@@ -718,8 +718,8 @@ button.collection-section-header:hover .collection-section-label {
 #entry-mileage-input {
   width: 100%;
   font-family: 'Courier New', Courier, monospace;
-  font-size: 1.6rem;
-  font-weight: 400;
+  font-size: 2rem;
+  font-weight: 700;
   line-height: 1;
   color: var(--text);
   background: var(--surface2);
@@ -772,12 +772,20 @@ button.collection-section-header:hover .collection-section-label {
   .cr-mileage { grid-column: 1; grid-row: 2; text-align: left; }
   .btn-enter { grid-column: 2; grid-row: 2; justify-self: end; }
 
+  /* Done row on mobile: 3 rows
+     Row 1: plate | name
+     Row 2: mileage (full width)
+     Row 3: time | History button
+  */
   .collection-row--done {
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto auto auto;
   }
-  .cr-time   { grid-column: 1; grid-row: 2; }
-  .collection-row--done .btn-icon { grid-column: 2; grid-row: 2; justify-self: end; }
+  .collection-row--done .cr-plate   { grid-column: 1; grid-row: 1; }
+  .collection-row--done .cr-name    { grid-column: 2; grid-row: 1; }
+  .collection-row--done .cr-mileage { grid-column: 1 / -1; grid-row: 2; text-align: left; }
+  .collection-row--done .cr-time    { grid-column: 1; grid-row: 3; }
+  .collection-row--done .btn-icon   { grid-column: 2; grid-row: 3; justify-self: end; }
 
   .collection-row--out {
     grid-template-columns: 1fr 1fr;
