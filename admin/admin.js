@@ -169,7 +169,7 @@ async function loadCollectionData() {
         new Date(new Date(row.submitted_at).getTime() - 86400000)
       );
       if (rowWeek === week && rowYear === year) {
-        doneIds.add(row.vehicle_id);
+        doneIds.add(String(row.vehicle_id));
         if (!doneByVehicle[row.vehicle_id]) doneByVehicle[row.vehicle_id] = row;
       }
     }
@@ -178,7 +178,7 @@ async function loadCollectionData() {
   // Restore "out" vehicle IDs from sessionStorage (persists across page refresh
   // within the same fleet week, but a vehicle that's actually been submitted
   // takes priority — remove it from outIds if it somehow got submitted anyway).
-  const savedOutIds = loadOutFromSession();
+  const savedOutIds = loadOutFromSession().map(String);
   const outIds = new Set(savedOutIds.filter(id => !doneIds.has(id)));
 
   // Split into pending / done / out, filtering fortnightly vehicles on odd weeks
@@ -186,11 +186,14 @@ async function loadCollectionData() {
     v.collection_frequency === 'weekly' || fullWeek
   );
 
-  pendingVehicles = applicable.filter(v => !doneIds.has(v.id) && !outIds.has(v.id));
+  pendingVehicles = applicable.filter(v => {
+    const id = String(v.id);
+    return !doneIds.has(id) && !outIds.has(id);
+  });
   doneVehicles    = applicable
-    .filter(v => doneIds.has(v.id))
+    .filter(v => doneIds.has(String(v.id)))
     .map(v => ({ ...v, _submission: doneByVehicle[v.id] }));
-  outVehicles     = applicable.filter(v => outIds.has(v.id));
+  outVehicles     = applicable.filter(v => outIds.has(String(v.id)));
 
   renderPendingList();
   renderDoneList();
@@ -308,14 +311,17 @@ function undoOut(vehicleId) {
 
 // Re-split pending / done / out without hitting Supabase again
 function rebuildLists() {
-  const savedOutIds = new Set(loadOutFromSession());
-  const doneIds = new Set(doneVehicles.map(v => v.id));
+  const savedOutIds = new Set(loadOutFromSession().map(String));
+  const doneIds = new Set(doneVehicles.map(v => String(v.id)));
 
   // applicable = same set currently in pending + done + out
   const applicable = [...pendingVehicles, ...doneVehicles, ...outVehicles];
 
-  pendingVehicles = applicable.filter(v => !doneIds.has(v.id) && !savedOutIds.has(v.id));
-  outVehicles     = applicable.filter(v => savedOutIds.has(v.id));
+  pendingVehicles = applicable.filter(v => {
+    const id = String(v.id);
+    return !doneIds.has(id) && !savedOutIds.has(id);
+  });
+  outVehicles     = applicable.filter(v => savedOutIds.has(String(v.id)));
   // doneVehicles unchanged
 
   renderPendingList();
