@@ -237,10 +237,12 @@ Vehicle photos: filename saved as `{id}.{ext}` in `image_url`. Public URL constr
 - [FIXED 2026-05-02] Admin mileage list showed vehicle ID — updated to plate + name in modal title
 - [FIXED 2026-05-02] Driver choice screen badge had plate small/orange, name large/white — swapped
 - [FIXED 2026-05-03] V027 Renault Kangoo had adblue_unit = 'gallons' — electric vehicle, corrected to null
+- [CHANGED 2026-05-04] "Vehicle Out" now sets `active = false` on the `vehicles` table in Supabase. Undoing ("Move back") sets `active = true`. Previously the out state was stored only in sessionStorage and was invisible to Supabase. Tested and working ✓
+- [FIXED 2026-05-04] `send-mileage-complete-email` edge function was missing CORS headers — browser preflight (OPTIONS) was returning 500, causing the Close Week button to hang on "Closing week…" and never send the email. Added `CORS_HEADERS` constant and OPTIONS handler. Redeployed as v3. Local copy also added to repo at `supabase/functions/send-mileage-complete-email/index.ts` (had previously only existed in Supabase).
 
 ---
 
-## Current status (as of 2026-05-03)
+## Current status (as of 2026-05-04)
 
 - Driver app (choice, mileage, fault, known issues): working ✓
 - Admin dashboard (vehicles, mileage, QR codes): working ✓
@@ -251,6 +253,7 @@ Vehicle photos: filename saved as `{id}.{ext}` in `image_url`. Public URL constr
   - `maintenance_log` + `task_rules` created ✓
   - `adblue_unit` on vehicles populated for all 32 ✓
   - task_rules seeded per vehicle per applicable task type ✓
+- "Vehicle Out" now persists `active = false` to Supabase (2026-05-04) ✓
 
 ---
 

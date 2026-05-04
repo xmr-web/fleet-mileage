@@ -204,7 +204,7 @@ Legacy table — removed by migration script.
 
 | Table | anon SELECT | anon INSERT | anon UPDATE | Notes |
 |---|---|---|---|---|
-| vehicles | ✓ | — | — | |
+| vehicles | ✓ | — | ✓ (active only) | anon UPDATE added 2026-05-04 for Vehicle Out feature |
 | mileage_log | ✓ | ✓ | — | |
 | faults | — | ✓ | — | Admin reads via authenticated role |
 | known_issues | ✓ (resolved=false) | — | — | |
