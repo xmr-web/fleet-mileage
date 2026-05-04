@@ -622,7 +622,7 @@ function initCloseWeekBtn() {
 
     const { error: skipErr } = await supabase
       .from('mileage_collection_skips')
-      .upsert(skipRows, { onConflict: 'fleet_week,fleet_year,vehicle_id' });
+      .insert(skipRows, { ignoreDuplicates: true });
 
     if (skipErr) {
       console.error('Failed to record skips:', skipErr);

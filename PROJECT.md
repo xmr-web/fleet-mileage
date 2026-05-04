@@ -239,6 +239,7 @@ Vehicle photos: filename saved as `{id}.{ext}` in `image_url`. Public URL constr
 - [FIXED 2026-05-03] V027 Renault Kangoo had adblue_unit = 'gallons' — electric vehicle, corrected to null
 - [CHANGED 2026-05-04] "Vehicle Out" now sets `active = false` on the `vehicles` table in Supabase. Undoing ("Move back") sets `active = true`. Previously the out state was stored only in sessionStorage and was invisible to Supabase. Tested and working ✓
 - [FIXED 2026-05-04] `send-mileage-complete-email` edge function was missing CORS headers — browser preflight (OPTIONS) was returning 500, causing the Close Week button to hang on "Closing week…" and never send the email. Added `CORS_HEADERS` constant and OPTIONS handler. Redeployed as v3. Local copy also added to repo at `supabase/functions/send-mileage-complete-email/index.ts` (had previously only existed in Supabase).
+- [FIXED 2026-05-04] Close Week button failing with "Failed to record out vehicles" — `mileage_collection_skips` had no unique constraint on `(fleet_week, fleet_year, vehicle_id)`, causing the upsert to fail. Added constraint via migration. Also changed admin.js from `upsert` to `insert` with `ignoreDuplicates: true` (simpler, only needs INSERT permission which already existed).
 
 ---
 
