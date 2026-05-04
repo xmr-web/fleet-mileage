@@ -11,6 +11,8 @@
   --text:      #1a1a1a;
   --text-muted:#6b7280;
   --danger:    #dc2626;
+  --out:       #d97706;   /* amber — "vehicle out" colour */
+  --out-bg:    #fffbeb;   /* very pale amber row tint */
   --radius:    6px;
   --font-head: 'Syne', sans-serif;
   --font-mono: 'Inter', sans-serif;
@@ -169,6 +171,27 @@ body {
   transition: opacity 0.15s;
 }
 .btn-danger:hover { opacity: 0.85; }
+
+/* "Vehicle Out" button — amber, outlined style so it feels secondary to Confirm */
+.btn-out {
+  background: none;
+  color: var(--out);
+  border: 1px solid var(--out);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  padding: 0.55rem 1.2rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  width: 100%;
+  margin-top: 0.6rem;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-out:hover {
+  background: var(--out);
+  color: #fff;
+}
 
 .btn-icon {
   background: none;
@@ -521,6 +544,7 @@ button.collection-section-header:hover .collection-section-label {
 
 .pending-label { color: var(--text); }
 .done-label    { color: var(--text-muted); }
+.out-label     { color: var(--out); }
 
 .collection-section-count {
   font-size: 0.75rem;
@@ -567,6 +591,15 @@ button.collection-section-header:hover .collection-section-label {
 }
 .collection-row--done:hover { border-color: var(--border); opacity: 1; }
 
+/* "Out" row — amber tint, columns: plate | name | label | undo button */
+.collection-row--out {
+  grid-template-columns: 90px 1fr 100px 110px;
+  background: var(--out-bg);
+  border-color: #fde68a;
+  opacity: 0.9;
+}
+.collection-row--out:hover { border-color: var(--out); opacity: 1; }
+
 .cr-plate {
   font-size: 0.72rem;
   letter-spacing: 0.1em;
@@ -595,6 +628,15 @@ button.collection-section-header:hover .collection-section-label {
 .cr-time {
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+/* "Vehicle out" tag shown in the out list row */
+.cr-out-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--out);
 }
 
 .btn-enter {
@@ -737,6 +779,13 @@ button.collection-section-header:hover .collection-section-label {
   }
   .cr-time   { grid-column: 1; grid-row: 2; }
   .collection-row--done .btn-icon { grid-column: 2; grid-row: 2; justify-self: end; }
+
+  .collection-row--out {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+  }
+  .cr-out-label { grid-column: 1; grid-row: 2; }
+  .collection-row--out .btn-icon { grid-column: 2; grid-row: 2; justify-self: end; }
 }
 @media print {
   body { background: #fff; color: #000; }

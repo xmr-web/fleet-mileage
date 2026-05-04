@@ -16,7 +16,28 @@ let vehicles = [];
 let pendingDeleteId = null;
 let pendingVehicles = [];
 let doneVehicles = [];
+let outVehicles = [];    // vehicles marked "out" for this collection session
 let entryVehicle = null; // vehicle currently open in the entry modal
+
+// ── sessionStorage key for "out" vehicles ─────────────────────────────────
+// Keyed by fleet week + year so it automatically clears when the week changes.
+function outStorageKey() {
+  const { week, year } = getFleetWeek();
+  return `fleet_out_${year}_w${week}`;
+}
+
+function loadOutFromSession() {
+  try {
+    const raw = sessionStorage.getItem(outStorageKey());
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveOutToSession(ids) {
+  try {
+    sessionStorage.setItem(outStorageKey(), JSON.stringify(ids));
+  } catch { /* ignore */ }
+}
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -25,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initModals();
   initEntryModal();
   initDoneToggle();
+  initOutToggle();
   loadAll();
 });
 
@@ -126,7 +148,6 @@ async function loadCollectionData() {
   document.getElementById('week-badge').textContent = `Week ${week}`;
 
   // Date range: Friday of fleet week to Monday of next week
-  // ISO week starts Monday. Friday = Monday + 4 days.
   const jan4 = new Date(Date.UTC(year, 0, 4));
   const startOfWeek1 = new Date(jan4);
   startOfWeek1.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7));
@@ -148,7 +169,6 @@ async function loadCollectionData() {
     .gte('submitted_at', friday.toISOString())
     .order('submitted_at', { ascending: false });
 
-  // Determine which are in this fleet week (using the same -1 day offset)
   const doneIds = new Set();
   const doneByVehicle = {};
   if (submissions) {
@@ -163,29 +183,43 @@ async function loadCollectionData() {
     }
   }
 
-  // Split into pending / done, filtering out fortnightly vehicles on odd weeks
+  // Restore "out" vehicle IDs from sessionStorage (persists across page refresh
+  // within the same fleet week, but a vehicle that's actually been submitted
+  // takes priority — remove it from outIds if it somehow got submitted anyway).
+  const savedOutIds = loadOutFromSession();
+  const outIds = new Set(savedOutIds.filter(id => !doneIds.has(id)));
+
+  // Split into pending / done / out, filtering fortnightly vehicles on odd weeks
   const applicable = vehicles.filter(v =>
     v.collection_frequency === 'weekly' || fullWeek
   );
 
-  pendingVehicles = applicable.filter(v => !doneIds.has(v.id));
+  pendingVehicles = applicable.filter(v => !doneIds.has(v.id) && !outIds.has(v.id));
   doneVehicles    = applicable
     .filter(v => doneIds.has(v.id))
     .map(v => ({ ...v, _submission: doneByVehicle[v.id] }));
+  outVehicles     = applicable.filter(v => outIds.has(v.id));
 
   renderPendingList();
   renderDoneList();
+  renderOutList();
   updateCounts();
 }
 
 function updateCounts() {
   document.getElementById('pending-count').textContent = pendingVehicles.length;
   document.getElementById('done-count').textContent    = doneVehicles.length;
+  document.getElementById('out-count').textContent     = outVehicles.length;
 
-  if (pendingVehicles.length === 0 && doneVehicles.length > 0) {
+  // Collection is complete when nothing is left pending — whether vehicles are
+  // done or marked out, the garage assistant can now send the complete email.
+  if (pendingVehicles.length === 0 && (doneVehicles.length + outVehicles.length) > 0) {
     const { week } = getFleetWeek();
+    const outNote = outVehicles.length > 0
+      ? ` (${outVehicles.length} vehicle${outVehicles.length > 1 ? 's' : ''} out)`
+      : '';
     document.getElementById('collection-summary').innerHTML =
-      `<span class="all-done-banner">&#x2713; Week ${week} complete &mdash; all vehicles collected</span>`;
+      `<span class="all-done-banner">&#x2713; Week ${week} complete &mdash; all vehicles accounted for${outNote}</span>`;
   }
 }
 
@@ -237,10 +271,71 @@ function renderDoneList() {
   });
 }
 
+function renderOutList() {
+  const list = document.getElementById('out-list');
+
+  // Show/hide the whole out section depending on whether there are any out vehicles
+  const section = document.getElementById('out-section');
+  if (outVehicles.length === 0) {
+    section.classList.add('hidden');
+    return;
+  }
+  section.classList.remove('hidden');
+
+  list.innerHTML = outVehicles.map(v => `
+    <div class="collection-row collection-row--out" data-id="${v.id}">
+      <span class="cr-plate">${v.plate}</span>
+      <span class="cr-name">${v.name}</span>
+      <span class="cr-out-label">Vehicle out</span>
+      <button class="btn-icon" data-action="undo-out" data-id="${v.id}">&#8635; Move back</button>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('[data-action="undo-out"]').forEach(btn => {
+    btn.addEventListener('click', () => undoOut(btn.dataset.id));
+  });
+}
+
+// Move a vehicle back from "out" to "pending"
+function undoOut(vehicleId) {
+  const savedOutIds = loadOutFromSession();
+  const updated = savedOutIds.filter(id => id !== vehicleId);
+  saveOutToSession(updated);
+  // Reload lists from current state (no Supabase fetch needed — just re-split)
+  rebuildLists();
+}
+
+// Re-split pending / done / out without hitting Supabase again
+function rebuildLists() {
+  const savedOutIds = new Set(loadOutFromSession());
+  const doneIds = new Set(doneVehicles.map(v => v.id));
+
+  // applicable = same set currently in pending + done + out
+  const applicable = [...pendingVehicles, ...doneVehicles, ...outVehicles];
+
+  pendingVehicles = applicable.filter(v => !doneIds.has(v.id) && !savedOutIds.has(v.id));
+  outVehicles     = applicable.filter(v => savedOutIds.has(v.id));
+  // doneVehicles unchanged
+
+  renderPendingList();
+  renderDoneList();
+  renderOutList();
+  updateCounts();
+}
+
 function initDoneToggle() {
   document.getElementById('done-toggle').addEventListener('click', () => {
     const list    = document.getElementById('done-list');
     const chevron = document.getElementById('done-chevron');
+    const hidden  = list.classList.toggle('hidden');
+    chevron.style.transform = hidden ? '' : 'rotate(90deg)';
+  });
+}
+
+function initOutToggle() {
+  document.getElementById('out-toggle').addEventListener('click', () => {
+    const list    = document.getElementById('out-list');
+    const chevron = document.getElementById('out-chevron');
     const hidden  = list.classList.toggle('hidden');
     chevron.style.transform = hidden ? '' : 'rotate(90deg)';
   });
@@ -272,6 +367,7 @@ function initEntryModal() {
   const input      = document.getElementById('entry-mileage-input');
   const validEl    = document.getElementById('entry-validation');
   const confirmBtn = document.getElementById('entry-confirm-btn');
+  const outBtn     = document.getElementById('entry-out-btn');
 
   document.getElementById('mileage-entry-close').addEventListener('click', () => {
     modal.classList.add('hidden');
@@ -279,6 +375,26 @@ function initEntryModal() {
   });
   modal.addEventListener('click', e => {
     if (e.target === modal) { modal.classList.add('hidden'); entryVehicle = null; }
+  });
+
+  // "Vehicle Out" button — remove from pending, add to out list
+  outBtn.addEventListener('click', () => {
+    if (!entryVehicle) return;
+    const savedOutIds = loadOutFromSession();
+    if (!savedOutIds.includes(entryVehicle.id)) {
+      savedOutIds.push(entryVehicle.id);
+      saveOutToSession(savedOutIds);
+    }
+    modal.classList.add('hidden');
+    entryVehicle = null;
+    rebuildLists();
+
+    // Auto-expand out list so the garage assistant can see the entry landed
+    const outList = document.getElementById('out-list');
+    if (outList.classList.contains('hidden')) {
+      outList.classList.remove('hidden');
+      document.getElementById('out-chevron').style.transform = 'rotate(90deg)';
+    }
   });
 
   input.addEventListener('input', () => {

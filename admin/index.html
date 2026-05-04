@@ -105,6 +105,16 @@
             </button>
             <div class="collection-list hidden" id="done-list"></div>
           </div>
+
+          <!-- Vehicle(s) Out list (collapsible, hidden until at least one vehicle is out) -->
+          <div class="collection-section hidden" id="out-section">
+            <button class="collection-section-header collection-section-toggle" id="out-toggle">
+              <span class="collection-section-label out-label">Vehicle(s) Out</span>
+              <span class="collection-section-count" id="out-count"></span>
+              <span class="toggle-chevron" id="out-chevron">›</span>
+            </button>
+            <div class="collection-list hidden" id="out-list"></div>
+          </div>
         </section>
 
         <!-- ── QR CODES TAB ── -->
@@ -151,6 +161,7 @@
           </div>
           <p class="entry-validation" id="entry-validation"></p>
           <button class="btn-primary entry-confirm-btn" id="entry-confirm-btn">Confirm Mileage</button>
+          <button class="btn-out entry-out-btn" id="entry-out-btn">Vehicle Out</button>
         </div>
       </div>
     </div>
