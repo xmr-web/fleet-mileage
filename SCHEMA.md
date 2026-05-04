@@ -210,6 +210,7 @@ Legacy table — removed by migration script.
 | known_issues | ✓ (resolved=false) | — | — | |
 | maintenance_log | ✓ | ✓ | — | |
 | task_rules | ✓ | — | ✓ | Admin adjusts intervals |
+| mileage_collection_skips | ✓ | ✓ | ✓ | anon UPDATE needed for upsert/ignoreDuplicates pattern |
 | bookings | — | — | — | Authenticated only |
 
 ---
@@ -228,3 +229,5 @@ Legacy table — removed by migration script.
 | 20260503xxxxxx | stage2_add_light_check | 2026-05-03 | light_check added to CHECK constraints |
 | 20260503xxxxxx | stage2_seed_light_check_rules | 2026-05-03 | light_check seeded for 7 vehicles |
 | 20260503xxxxxx | stage2_fix_no_adblue_vehicles | 2026-05-03 | V027 adblue_unit corrected to null; adblue_check removed for 14 no-AdBlue vehicles |
+| 20260504xxxxxx | add_unique_constraint_mileage_collection_skips | 2026-05-04 | Unique constraint on (fleet_week, fleet_year, vehicle_id) |
+| 20260504xxxxxx | anon_update_mileage_collection_skips | 2026-05-04 | anon UPDATE policy on mileage_collection_skips for upsert ignoreDuplicates |

@@ -622,13 +622,13 @@ function initCloseWeekBtn() {
 
     const { error: skipErr } = await supabase
       .from('mileage_collection_skips')
-      .insert(skipRows, { ignoreDuplicates: true });
+      .upsert(skipRows, { onConflict: 'fleet_week,fleet_year,vehicle_id', ignoreDuplicates: true });
 
     if (skipErr) {
       console.error('Failed to record skips:', JSON.stringify(skipErr));
       btn.disabled = false;
       btn.textContent = 'Close Week & Send Email';
-      alert(`Failed to record out vehicles.\nError: ${skipErr.message}\nCode: ${skipErr.code}\nDetails: ${skipErr.details}`);
+      alert('Failed to record out vehicles. Please try again.');
       return;
     }
 
