@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initEntryModal();
   initDoneToggle();
   initOutToggle();
+  initCloseWeekBtn();
   loadAll();
 });
 
@@ -211,8 +212,8 @@ function updateCounts() {
   document.getElementById('done-count').textContent    = doneVehicles.length;
   document.getElementById('out-count').textContent     = outVehicles.length;
 
-  // Collection is complete when nothing is left pending — whether vehicles are
-  // done or marked out, the garage assistant can now send the complete email.
+  const closeBtn = document.getElementById('close-week-btn');
+
   if (pendingVehicles.length === 0 && (doneVehicles.length + outVehicles.length) > 0) {
     const { week } = getFleetWeek();
     const outNote = outVehicles.length > 0
@@ -220,6 +221,15 @@ function updateCounts() {
       : '';
     document.getElementById('collection-summary').innerHTML =
       `<span class="all-done-banner">&#x2713; Week ${week} complete &mdash; all vehicles accounted for${outNote}</span>`;
+    // Show Close Week button only when there are out vehicles — if all are done
+    // the webhook fires automatically on the last insert, no button needed.
+    if (outVehicles.length > 0) {
+      closeBtn.classList.remove('hidden');
+    } else {
+      closeBtn.classList.add('hidden');
+    }
+  } else {
+    closeBtn.classList.add('hidden');
   }
 }
 
@@ -710,6 +720,68 @@ async function deleteVehicle(vehicleId) {
   if (error) { console.error('Delete failed:', error); return; }
 
   await loadAll();
+}
+
+// ── Close Week button ─────────────────────────────────────────────────────
+// Appears only when pending = 0 AND there are out vehicles.
+// Writes the out vehicles to mileage_collection_skips, then calls the edge
+// function directly so it can send the completion email.
+function initCloseWeekBtn() {
+  const btn = document.getElementById('close-week-btn');
+  btn.addEventListener('click', async () => {
+    if (outVehicles.length === 0) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Closing week\u2026';
+
+    const { week, year } = getFleetWeek();
+
+    // Insert one skip row per out vehicle (ignore duplicates — unique constraint)
+    const skipRows = outVehicles.map(v => ({
+      fleet_week: week,
+      fleet_year: year,
+      vehicle_id: v.id,
+      reason: 'out',
+    }));
+
+    const { error: skipErr } = await supabase
+      .from('mileage_collection_skips')
+      .upsert(skipRows, { onConflict: 'fleet_week,fleet_year,vehicle_id' });
+
+    if (skipErr) {
+      console.error('Failed to record skips:', skipErr);
+      btn.disabled = false;
+      btn.textContent = 'Close Week & Send Email';
+      alert('Failed to record out vehicles. Please try again.');
+      return;
+    }
+
+    // Call the edge function directly — it will find the skips and fire the email
+    const SUPABASE_URL_VAL = supabase.supabaseUrl;
+    const res = await fetch(
+      `${SUPABASE_URL_VAL}/functions/v1/send-mileage-complete-email`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fleet_week: week, fleet_year: year }),
+      }
+    );
+
+    const result = await res.json();
+    console.log('Close week result:', result);
+
+    if (result.success) {
+      btn.textContent = '\u2713 Email sent';
+      btn.classList.add('btn-close-week--sent');
+    } else if (result.skipped) {
+      btn.textContent = '\u2713 Already sent';
+      btn.classList.add('btn-close-week--sent');
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Close Week & Send Email';
+      alert(`Error sending email: ${result.error ?? 'Unknown error'}`);
+    }
+  });
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────

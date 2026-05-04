@@ -667,6 +667,32 @@ button.collection-section-header:hover .collection-section-label {
   padding: 1rem 0;
 }
 
+/* Close Week & Send Email button */
+.btn-close-week {
+  display: block;
+  margin-top: 2rem;
+  width: 100%;
+  padding: 0.9rem;
+  background: #22a05a;
+  color: #fff;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.btn-close-week:hover  { background: #1a7d46; }
+.btn-close-week:active { transform: scale(0.98); }
+.btn-close-week:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-close-week--sent {
+  background: #e0f2ea;
+  color: #1a7d46;
+  cursor: default;
+}
+
 /* ── Mileage entry modal ── */
 .modal-vehicle-plate {
   font-family: var(--font-head);
