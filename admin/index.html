@@ -31,39 +31,6 @@
         <section class="tab-panel active" id="tab-vehicles">
           <div class="panel-header">
             <h1>Vehicles</h1>
-            <button class="btn-primary" id="show-add-form">+ Add Vehicle</button>
-          </div>
-
-          <!-- Add vehicle form (hidden by default) -->
-          <div class="add-form-wrapper hidden" id="add-form-wrapper">
-            <form class="add-form" id="add-vehicle-form">
-              <h2>New Vehicle</h2>
-              <div class="form-row">
-                <label for="vehicle-id">Vehicle ID</label>
-                <input type="text" id="vehicle-id" placeholder="e.g. V001" required />
-              </div>
-              <div class="form-row">
-                <label for="vehicle-name">Vehicle Name</label>
-                <input type="text" id="vehicle-name" placeholder="e.g. Ford Transit — Plate AB12 CDE" required />
-              </div>
-              <div class="form-row">
-                <label for="vehicle-mileage">Starting Mileage</label>
-                <input type="number" id="vehicle-mileage" placeholder="e.g. 12500" min="0" required />
-              </div>
-              <div class="form-row">
-                <label for="vehicle-photo">Photo</label>
-                <div class="file-drop" id="file-drop">
-                  <input type="file" id="vehicle-photo" accept="image/*" />
-                  <span class="file-drop-label">Click or drag a photo here</span>
-                  <img class="file-preview hidden" id="file-preview" alt="preview" />
-                </div>
-              </div>
-              <div class="form-actions">
-                <button type="button" class="btn-ghost" id="cancel-add">Cancel</button>
-                <button type="submit" class="btn-primary" id="submit-vehicle">Save Vehicle</button>
-              </div>
-              <p class="form-status hidden" id="form-status"></p>
-            </form>
           </div>
 
           <!-- Vehicle grid -->
@@ -172,23 +139,6 @@
         </div>
         <div class="modal-body" id="modal-body">
           <div class="loading-state">Loading…</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Delete confirm modal -->
-    <div class="modal-overlay hidden" id="delete-modal">
-      <div class="modal modal--sm">
-        <div class="modal-header">
-          <h2>Delete Vehicle?</h2>
-          <button class="modal-close" id="delete-modal-close">✕</button>
-        </div>
-        <div class="modal-body">
-          <p id="delete-confirm-text">This will permanently remove the vehicle and all its mileage history.</p>
-          <div class="form-actions" style="margin-top:1.5rem">
-            <button class="btn-ghost" id="delete-cancel">Cancel</button>
-            <button class="btn-danger" id="delete-confirm">Delete</button>
-          </div>
         </div>
       </div>
     </div>

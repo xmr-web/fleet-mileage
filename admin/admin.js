@@ -13,7 +13,6 @@ const BASE_URL = 'https://fleet-mileage.pages.dev';
 
 // ── State ──────────────────────────────────────────────────────────────────
 let vehicles = [];
-let pendingDeleteId = null;
 let pendingVehicles = [];
 let doneVehicles = [];
 let outVehicles = [];    // vehicles marked "out" for this collection session
@@ -42,7 +41,6 @@ function saveOutToSession(ids) {
 // ── Boot ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initTabs();
-  initVehicleForm();
   initModals();
   initEntryModal();
   initDoneToggle();
@@ -91,7 +89,7 @@ function renderVehicleGrid() {
   const grid = document.getElementById('vehicle-grid');
 
   if (vehicles.length === 0) {
-    grid.innerHTML = '<p class="empty-state">No vehicles yet. Add one above.</p>';
+    grid.innerHTML = '<p class="empty-state">No vehicles yet.</p>';
     return;
   }
 
@@ -105,16 +103,9 @@ function renderVehicleGrid() {
         <div class="vehicle-card-id">${v.plate}</div>
         <div class="vehicle-card-name">${v.name}</div>
         <div class="vehicle-card-mileage">Current mileage: <strong>${v.current_mileage?.toLocaleString() ?? '&#x2014;'}</strong></div>
-        <div class="vehicle-card-actions">
-          <button class="btn-icon danger" data-action="delete" data-id="${v.id}">Delete</button>
-        </div>
       </div>
     </div>
   `).join('');
-
-  grid.querySelectorAll('[data-action="delete"]').forEach(btn => {
-    btn.addEventListener('click', () => openDeleteModal(btn.dataset.id));
-  });
 }
 
 // ── Fleet week helpers ─────────────────────────────────────────────────────
@@ -533,108 +524,6 @@ function renderQRGrid() {
   });
 }
 
-// ── Add Vehicle Form ───────────────────────────────────────────────────────
-function initVehicleForm() {
-  const showBtn    = document.getElementById('show-add-form');
-  const cancelBtn  = document.getElementById('cancel-add');
-  const wrapper    = document.getElementById('add-form-wrapper');
-  const form       = document.getElementById('add-vehicle-form');
-  const photoInput = document.getElementById('vehicle-photo');
-  const preview    = document.getElementById('file-preview');
-  const statusEl   = document.getElementById('form-status');
-
-  showBtn.addEventListener('click', () => {
-    wrapper.classList.remove('hidden');
-    showBtn.classList.add('hidden');
-  });
-
-  cancelBtn.addEventListener('click', () => {
-    wrapper.classList.add('hidden');
-    showBtn.classList.remove('hidden');
-    form.reset();
-    preview.classList.add('hidden');
-    statusEl.classList.add('hidden');
-  });
-
-  photoInput.addEventListener('change', () => {
-    const file = photoInput.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      preview.src = e.target.result;
-      preview.classList.remove('hidden');
-      document.querySelector('.file-drop-label').textContent = file.name;
-    };
-    reader.readAsDataURL(file);
-  });
-
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-    const submitBtn = document.getElementById('submit-vehicle');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Saving\u2026';
-    setStatus('', '');
-
-    const id      = document.getElementById('vehicle-id').value.trim().toUpperCase();
-    const name    = document.getElementById('vehicle-name').value.trim();
-    const mileage = parseInt(document.getElementById('vehicle-mileage').value, 10);
-    const file    = photoInput.files[0];
-
-    if (vehicles.find(v => v.id === id)) {
-      setStatus(`Vehicle ID "${id}" already exists.`, 'error');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Save Vehicle';
-      return;
-    }
-
-    try {
-      let photoPath = null;
-
-      if (file) {
-        const ext = file.name.split('.').pop();
-        const filename = `${id}.${ext}`;
-        const { error: uploadError } = await supabase
-          .storage
-          .from('vehicle-images')
-          .upload(filename, file, { upsert: true });
-        if (uploadError) throw uploadError;
-        photoPath = filename;
-      }
-
-      const { error: insertError } = await supabase
-        .from('vehicles')
-        .insert({ id, name, image_url: photoPath, current_mileage: mileage });
-      if (insertError) throw insertError;
-
-      setStatus('Vehicle saved!', 'success');
-      form.reset();
-      preview.classList.add('hidden');
-      document.querySelector('.file-drop-label').textContent = 'Click or drag a photo here';
-
-      setTimeout(() => {
-        wrapper.classList.add('hidden');
-        showBtn.classList.remove('hidden');
-        statusEl.classList.add('hidden');
-      }, 1200);
-
-      await loadAll();
-
-    } catch (err) {
-      console.error(err);
-      setStatus(`Error: ${err.message}`, 'error');
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Save Vehicle';
-    }
-  });
-
-  function setStatus(msg, type) {
-    statusEl.textContent = msg;
-    statusEl.className = `form-status ${type}`;
-    if (msg) statusEl.classList.remove('hidden');
-  }
-}
-
 // ── History Modal ──────────────────────────────────────────────────────────
 async function openHistoryModal(vehicleId, vehicleName, vehiclePlate) {
   const modal = document.getElementById('history-modal');
@@ -678,15 +567,6 @@ async function openHistoryModal(vehicleId, vehicleName, vehiclePlate) {
   `;
 }
 
-// ── Delete Modal ───────────────────────────────────────────────────────────
-function openDeleteModal(vehicleId) {
-  const vehicle = vehicles.find(v => v.id === vehicleId);
-  pendingDeleteId = vehicleId;
-  document.getElementById('delete-confirm-text').textContent =
-    `Delete "${vehicle?.name}" (${vehicle?.plate || vehicleId})? This will permanently remove the vehicle and all its mileage history.`;
-  document.getElementById('delete-modal').classList.remove('hidden');
-}
-
 function initModals() {
   document.getElementById('modal-close').addEventListener('click', () => {
     document.getElementById('history-modal').classList.add('hidden');
@@ -694,33 +574,9 @@ function initModals() {
   document.getElementById('history-modal').addEventListener('click', e => {
     if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
   });
-
-  document.getElementById('delete-modal-close').addEventListener('click', () => {
-    document.getElementById('delete-modal').classList.add('hidden');
-  });
-  document.getElementById('delete-cancel').addEventListener('click', () => {
-    document.getElementById('delete-modal').classList.add('hidden');
-  });
-  document.getElementById('delete-confirm').addEventListener('click', async () => {
-    if (!pendingDeleteId) return;
-    await deleteVehicle(pendingDeleteId);
-    document.getElementById('delete-modal').classList.add('hidden');
-  });
 }
 
-async function deleteVehicle(vehicleId) {
-  const vehicle = vehicles.find(v => v.id === vehicleId);
 
-  if (vehicle?.image_url) {
-    await supabase.storage.from('vehicle-images').remove([vehicle.image_url]);
-  }
-  await supabase.from('mileage_log').delete().eq('vehicle_id', vehicleId);
-
-  const { error } = await supabase.from('vehicles').delete().eq('id', vehicleId);
-  if (error) { console.error('Delete failed:', error); return; }
-
-  await loadAll();
-}
 
 // ── Close Week button ─────────────────────────────────────────────────────
 // Appears only when pending = 0 AND there are out vehicles.
