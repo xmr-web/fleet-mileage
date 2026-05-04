@@ -301,7 +301,13 @@ function renderOutList() {
 }
 
 // Move a vehicle back from "out" to "pending"
-function undoOut(vehicleId) {
+async function undoOut(vehicleId) {
+  // Restore active flag in Supabase
+  await supabase
+    .from('vehicles')
+    .update({ active: true })
+    .eq('id', vehicleId);
+
   const savedOutIds = loadOutFromSession();
   const updated = savedOutIds.filter(id => id !== vehicleId);
   saveOutToSession(updated);
@@ -384,12 +390,20 @@ function initEntryModal() {
     if (e.target === modal) { modal.classList.add('hidden'); entryVehicle = null; }
   });
 
-  // "Vehicle Out" button — remove from pending, add to out list
-  outBtn.addEventListener('click', () => {
+ // "Vehicle Out" button — remove from pending, add to out list, flag inactive in Supabase
+  outBtn.addEventListener('click', async () => {
     if (!entryVehicle) return;
+    const vehicleId = entryVehicle.id;
+
+    // Persist to Supabase — active = false means "vehicle is out"
+    await supabase
+      .from('vehicles')
+      .update({ active: false })
+      .eq('id', vehicleId);
+
     const savedOutIds = loadOutFromSession();
-    if (!savedOutIds.includes(entryVehicle.id)) {
-      savedOutIds.push(entryVehicle.id);
+    if (!savedOutIds.includes(vehicleId)) {
+      savedOutIds.push(vehicleId);
       saveOutToSession(savedOutIds);
     }
     modal.classList.add('hidden');
