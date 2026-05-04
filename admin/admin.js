@@ -625,10 +625,10 @@ function initCloseWeekBtn() {
       .insert(skipRows, { ignoreDuplicates: true });
 
     if (skipErr) {
-      console.error('Failed to record skips:', skipErr);
+      console.error('Failed to record skips:', JSON.stringify(skipErr));
       btn.disabled = false;
       btn.textContent = 'Close Week & Send Email';
-      alert('Failed to record out vehicles. Please try again.');
+      alert(`Failed to record out vehicles.\nError: ${skipErr.message}\nCode: ${skipErr.code}\nDetails: ${skipErr.details}`);
       return;
     }
 
