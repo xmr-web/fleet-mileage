@@ -186,11 +186,20 @@ async function loadCollectionData() {
     }
   }
 
-  // Restore "out" vehicle IDs from sessionStorage (persists across page refresh
-  // within the same fleet week, but a vehicle that's actually been submitted
-  // takes priority — remove it from outIds if it somehow got submitted anyway).
-  const savedOutIds = loadOutFromSession().map(String);
-  const outIds = new Set(savedOutIds.filter(id => !doneIds.has(id)));
+  // Fetch out vehicles from mileage_collection_skips (persistent source of truth)
+  const { data: skips } = await supabase
+    .from('mileage_collection_skips')
+    .select('vehicle_id')
+    .eq('fleet_week', week)
+    .eq('fleet_year', year);
+
+  const outIds = new Set((skips ?? []).map(s => String(s.vehicle_id)));
+
+  // Sync sessionStorage to match Supabase so rebuildLists() stays consistent
+  saveOutToSession([...outIds]);
+
+  // If a vehicle was submitted this week, remove it from outIds (submitted takes priority)
+  for (const id of doneIds) outIds.delete(id);
 
   // Split into pending / done / out, filtering fortnightly vehicles on odd weeks
   const applicable = vehicles.filter(v =>
@@ -318,6 +327,15 @@ async function undoOut(vehicleId) {
     .from('vehicles')
     .update({ active: true })
     .eq('id', vehicleId);
+
+  // Remove from mileage_collection_skips
+  const { week, year } = getFleetWeek();
+  await supabase
+    .from('mileage_collection_skips')
+    .delete()
+    .eq('vehicle_id', vehicleId)
+    .eq('fleet_week', week)
+    .eq('fleet_year', year);
 
   const savedOutIds = loadOutFromSession();
   const updated = savedOutIds.filter(id => id !== vehicleId);
