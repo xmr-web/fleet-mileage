@@ -15,6 +15,9 @@
 .check-screen { display: none; }
 .check-screen.active { display: block; animation: fadeIn 0.2s ease; }
 
+/* Override admin.css hidden class for check screens — hidden is only the default state */
+.check-screen.active.hidden { display: block !important; }
+
 /* Back button (inline, above content) */
 .btn-back {
   background: none;

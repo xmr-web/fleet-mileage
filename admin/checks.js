@@ -111,8 +111,13 @@ function routeFromParams() {
 
 // ── Screen switching ───────────────────────────────────────────────────────
 function showScreen(id) {
-  document.querySelectorAll('.check-screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.check-screen').forEach(s => {
+    s.classList.remove('active');
+    s.classList.add('hidden');
+  });
+  const target = document.getElementById(id);
+  target.classList.remove('hidden');
+  target.classList.add('active');
 }
 
 // ── SCREEN: Picker ─────────────────────────────────────────────────────────
