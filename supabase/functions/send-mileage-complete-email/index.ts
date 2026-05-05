@@ -167,6 +167,7 @@ Deno.serve(async (req) => {
       .map((v: { id: string; name: string; plate: string; current_mileage: number | null }) => {
         const isSkipped = skippedIds.has(v.id);
         return {
+          id:      v.id,
           plate:   v.plate,
           name:    v.name,
           mileage: isSkipped ? null : (doneMap[v.id]?.mileage ?? v.current_mileage ?? 0),
@@ -182,19 +183,25 @@ Deno.serve(async (req) => {
           skipped: isSkipped,
         };
       })
-      .sort((a: { plate: string }, b: { plate: string }) => a.plate.localeCompare(b.plate));
+      .sort((a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id));
 
-    const tableRows = rows.map((r: { plate: string; name: string; mileage: number | null; time: string; skipped: boolean }) => `
-      <tr style="${r.skipped ? 'color:#aaa;' : ''}">
-        <td style="padding:5px 14px 5px 0;font-weight:600;color:${r.skipped ? '#ccc' : '#f0a500'};">${r.plate}</td>
-        <td style="padding:5px 14px 5px 0;">${r.name}</td>
-        <td style="padding:5px 14px 5px 0;text-align:right;">${r.skipped ? '-' : r.mileage!.toLocaleString("en-GB") + ' mi'}</td>
-        <td style="padding:5px 0;color:#888;font-size:13px;font-style:${r.skipped ? 'italic' : 'normal'};">${r.time}</td>
-      </tr>
-    `).join("");
+    // Build out-vehicle plate list for the skipped note e.g. (LJ17, YG63)
+    const skippedPlates = rows
+      .filter((r: { skipped: boolean }) => r.skipped)
+      .map((r: { plate: string }) => r.plate)
+      .join(', ');
+
+    const tableRows = rows.map((r: { id: string; plate: string; name: string; mileage: number | null; time: string; skipped: boolean }) =>
+`<tr style="${r.skipped ? 'color:#aaa;' : ''}">`+
+`<td style="padding:5px 14px 5px 0;font-weight:600;color:${r.skipped ? '#ccc' : '#f0a500'};">${r.plate}</td>`+
+`<td style="padding:5px 14px 5px 0;">${r.name}</td>`+
+`<td style="padding:5px 14px 5px 0;text-align:right;">${r.skipped ? '-' : r.mileage!.toLocaleString("en-GB") + ' mi'}</td>`+
+`<td style="padding:5px 0;color:#888;font-size:13px;font-style:${r.skipped ? 'italic' : 'normal'};">${r.time}</td>`+
+`</tr>`
+    ).join("");
 
     const skippedNote = skippedCount > 0
-      ? `<p style="color:#d97706;margin-top:0.5rem;">&#x26A0;&#xFE0F; ${skippedCount} vehicle${skippedCount > 1 ? 's were' : ' was'} out and not collected this week.</p>`
+      ? `<p style="color:#d97706;margin-top:0.5rem;">&#x26A0;&#xFE0F; ${skippedCount} vehicle${skippedCount > 1 ? 's were' : ' was'} out and not collected this week (${skippedPlates}).</p>`
       : '';
 
     const subject = `Week ${fleetWeek} Mileage Collection Complete - ${collectedCount} collected, ${skippedCount} out`;
