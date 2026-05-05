@@ -13,7 +13,7 @@ import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 //
 // Fleet week = ISO week of (submitted_at - 1 day).
 // Even fleet-weeks = 32 vehicles; odd = 28 (fortnightly vehicles skipped).
-// NOTE: active = false vehicles are excluded from the applicable list —
+// NOTE: active = false vehicles are excluded from the applicable list -
 // they are treated as "out" and do not count toward the completion total.
 
 const CORS_HEADERS = {
@@ -23,7 +23,6 @@ const CORS_HEADERS = {
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: CORS_HEADERS });
   }
@@ -36,9 +35,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // ── 1. Work out the fleet week ────────────────────────────────────────────
-    // If called directly from admin UI, body contains { fleet_week, fleet_year }.
-    // If called from webhook, body contains { record: { submitted_at, ... } }.
     let fleetWeek: number;
     let fleetYear: number;
 
@@ -57,7 +53,6 @@ Deno.serve(async (req) => {
 
     const fullWeek = fleetWeek % 2 === 0;
 
-    // ── 2. Check if alert already sent for this week ──────────────────────────
     const { data: existing } = await supabase
       .from("mileage_collection_alerts")
       .select("id")
@@ -71,7 +66,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── 3. Calculate collection window: Friday of fleet week ─────────────────
     const jan4       = new Date(Date.UTC(fleetYear, 0, 4));
     const startWeek1 = new Date(jan4);
     startWeek1.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7));
@@ -80,10 +74,6 @@ Deno.serve(async (req) => {
     const friday = new Date(monday);
     friday.setUTCDate(monday.getUTCDate() + 4);
 
-    // ── 4. Fetch all applicable vehicles (active only) ────────────────────────
-    // active = false means the vehicle is currently "out" and not part of
-    // this week's collection. We exclude them from the denominator entirely
-    // so the completion check works correctly without needing skip rows.
     const { data: vehicles, error: vErr } = await supabase
       .from("vehicles")
       .select("id, name, plate, current_mileage, collection_frequency")
@@ -97,7 +87,6 @@ Deno.serve(async (req) => {
         v.collection_frequency === "weekly" || fullWeek
     );
 
-    // ── 5. Fetch mileage submissions for this fleet week ──────────────────────
     const { data: submissions, error: sErr } = await supabase
       .from("mileage_log")
       .select("vehicle_id, mileage, submitted_at, driver_name")
@@ -115,7 +104,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 6. Fetch skipped vehicles for this fleet week ─────────────────────────
     const { data: skips, error: skErr } = await supabase
       .from("mileage_collection_skips")
       .select("vehicle_id")
@@ -130,7 +118,6 @@ Deno.serve(async (req) => {
       (v: { id: string }) => doneMap[v.id] || skippedIds.has(v.id)
     ).length;
 
-    // ── 7. Not complete yet — nothing to do ──────────────────────────────────
     if (accounted < applicable.length) {
       return new Response(
         JSON.stringify({ pending: applicable.length - accounted }),
@@ -138,21 +125,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ── 8. All accounted for — record the alert first (prevents race condition)
     const { error: insertErr } = await supabase
       .from("mileage_collection_alerts")
       .insert({ fleet_week: fleetWeek, fleet_year: fleetYear, vehicle_count: applicable.length });
 
     if (insertErr) {
       if (insertErr.code === "23505") {
-        return new Response(JSON.stringify({ skipped: "race condition — already recorded" }), {
+        return new Response(JSON.stringify({ skipped: "race condition already recorded" }), {
           headers: { "Content-Type": "application/json", ...CORS_HEADERS },
         });
       }
       throw insertErr;
     }
 
-    // ── 9. Fetch email config ─────────────────────────────────────────────────
     const { data: settings } = await supabase
       .from("app_settings")
       .select("key, value");
@@ -169,7 +154,6 @@ Deno.serve(async (req) => {
       throw new Error("Missing email config in app_settings or GMAIL_APP_PASSWORD secret");
     }
 
-    // ── 10. Build email content ───────────────────────────────────────────────
     const completedAt = new Date().toLocaleString("en-GB", {
       dateStyle: "full",
       timeStyle: "short",
@@ -183,17 +167,17 @@ Deno.serve(async (req) => {
       .map((v: { id: string; name: string; plate: string; current_mileage: number | null }) => {
         const isSkipped = skippedIds.has(v.id);
         return {
-          plate:     v.plate,
-          name:      v.name,
-          mileage:   isSkipped ? null : (doneMap[v.id]?.mileage ?? v.current_mileage ?? 0),
-          time:      isSkipped ? 'Vehicle out' : (
+          plate:   v.plate,
+          name:    v.name,
+          mileage: isSkipped ? null : (doneMap[v.id]?.mileage ?? v.current_mileage ?? 0),
+          time:    isSkipped ? 'Vehicle out' : (
             doneMap[v.id]?.submitted_at
               ? new Date(doneMap[v.id].submitted_at).toLocaleString("en-GB", {
                   day: "2-digit", month: "short",
                   hour: "2-digit", minute: "2-digit",
                   timeZone: "Europe/London",
                 })
-              : "—"
+              : "-"
           ),
           skipped: isSkipped,
         };
@@ -204,7 +188,7 @@ Deno.serve(async (req) => {
       <tr style="${r.skipped ? 'color:#aaa;' : ''}">
         <td style="padding:5px 14px 5px 0;font-weight:600;color:${r.skipped ? '#ccc' : '#f0a500'};">${r.plate}</td>
         <td style="padding:5px 14px 5px 0;">${r.name}</td>
-        <td style="padding:5px 14px 5px 0;text-align:right;">${r.skipped ? '—' : r.mileage!.toLocaleString("en-GB") + ' mi'}</td>
+        <td style="padding:5px 14px 5px 0;text-align:right;">${r.skipped ? '-' : r.mileage!.toLocaleString("en-GB") + ' mi'}</td>
         <td style="padding:5px 0;color:#888;font-size:13px;font-style:${r.skipped ? 'italic' : 'normal'};">${r.time}</td>
       </tr>
     `).join("");
@@ -213,15 +197,19 @@ Deno.serve(async (req) => {
       ? `<p style="color:#d97706;margin-top:0.5rem;">&#x26A0;&#xFE0F; ${skippedCount} vehicle${skippedCount > 1 ? 's were' : ' was'} out and not collected this week.</p>`
       : '';
 
-    const subject = `✅ Week ${fleetWeek} Mileage Collection Complete — ${collectedCount} collected, ${skippedCount} out`;
+    const subject = `Week ${fleetWeek} Mileage Collection Complete - ${collectedCount} collected, ${skippedCount} out`;
+
+    // Hidden preheader - controls the preview snippet shown in Gmail inbox
+    // instead of the plain-text content leaking through.
+    const preheader = `${collectedCount} vehicles collected${skippedCount > 0 ? `, ${skippedCount} out` : ''} - Week ${fleetWeek} complete.`;
 
     const emailHtml = `
       <div style="font-family:sans-serif;max-width:600px;">
-        <h2 style="color:#2e7d32;">&#x2705; Week ${fleetWeek} Mileage Collection Complete</h2>
+        <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${preheader}</div>
+        <h2 style="color:#2e7d32;">Week ${fleetWeek} Mileage Collection Complete</h2>
         <p style="color:#555;">${collectedCount} vehicles collected, ${skippedCount} vehicle${skippedCount !== 1 ? 's' : ''} out.<br>
         Completed: <strong>${completedAt}</strong></p>
         ${skippedNote}
-
         <table style="border-collapse:collapse;font-size:14px;width:100%;margin-top:1rem;">
           <thead>
             <tr style="border-bottom:2px solid #eee;">
@@ -235,13 +223,11 @@ Deno.serve(async (req) => {
             ${tableRows}
           </tbody>
         </table>
-
         <hr style="margin-top:24px;border:none;border-top:1px solid #eee;">
         <p style="font-size:12px;color:#aaa;">Automated alert from the Fleet Mileage app.</p>
       </div>
     `;
 
-    // ── 11. Send via Gmail SMTP ───────────────────────────────────────────────
     const client = new SMTPClient({
       connection: {
         hostname: "smtp.gmail.com",
@@ -251,13 +237,29 @@ Deno.serve(async (req) => {
       },
     });
 
+    // Plain-text fallback - ASCII only to avoid quoted-printable encoding
+    // artifacts (non-ASCII chars like em-dash can cause words to split mid-line).
+    const emailText = [
+      `Week ${fleetWeek} Mileage Collection Complete`,
+      `${collectedCount} vehicles collected, ${skippedCount} out.`,
+      `Completed: ${completedAt}`,
+      '',
+      ...rows.map((r: { plate: string; name: string; mileage: number | null; time: string; skipped: boolean }) =>
+        r.skipped
+          ? `${r.plate}  ${r.name}  - Vehicle out`
+          : `${r.plate}  ${r.name}  ${r.mileage!.toLocaleString('en-GB')} mi  ${r.time}`
+      ),
+      '',
+      'Automated alert from the Fleet Mileage app.',
+    ].join('\n');
+
     await client.send({
-      from:    `Fleet Alerts <${gmailUser}>`,
+      from:    `"Fleet Alerts" <${gmailUser}>`,
       to:      mechanicEmail,
       cc:      adminEmail,
       subject,
       html:    emailHtml,
-      content: emailHtml,
+      content: emailText,
     });
 
     await client.close();

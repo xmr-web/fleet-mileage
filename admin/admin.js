@@ -108,12 +108,20 @@ function renderVehicleGrid() {
   `).join('');
 }
 
-// ── Fleet week helpers ─────────────────────────────────────────────────────
-// Offset by -1 day: Monday morning still counts as the previous fleet week,
-// matching the Friday–Monday collection window.
+// Fleet week helpers
+// The displayed fleet week does not advance until Friday.
+// Mon/Tue/Wed/Thu still show the previous week, giving the mechanic
+// time to copy numbers into Fleetio before the new collection opens.
+// Friday is day 5 (getUTCDay: Sun=0, Mon=1 ... Fri=5, Sat=6).
 function getFleetWeek() {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
+  const now = new Date();
+  const dayOfWeek = now.getUTCDay(); // 0=Sun, 1=Mon ... 5=Fri, 6=Sat
+  // Days to subtract to land on the most recent Friday:
+  //   Fri(5) -> 0,  Sat(6) -> 1,  Sun(0) -> 2,
+  //   Mon(1) -> 3,  Tue(2) -> 4,  Wed(3) -> 5,  Thu(4) -> 6
+  const daysBack = dayOfWeek >= 5 ? dayOfWeek - 5 : dayOfWeek + 2;
+  const d = new Date(now);
+  d.setUTCDate(d.getUTCDate() - daysBack);
   return isoWeek(d);
 }
 
