@@ -253,15 +253,52 @@ RLS: authenticated only.
 
 ---
 
-### `public.vehicle_status` *(view — exists)*
+### `public.vehicle_status` *(view — rebuilt 2026-05-05)*
 
-A single-query view for the mechanic dashboard. Shows per vehicle: latest mileage, open fault count, critical fault flag, last clean date, last inspection date, unacknowledged alert flag, current booking. Full DDL not yet documented — query Supabase directly if needed.
+Single-query view for the admin/mechanic dashboard. One row per active vehicle.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | text | vehicles.id |
+| name | text | |
+| plate | text | |
+| current_mileage | integer | |
+| last_mileage_date | timestamptz | Most recent mileage_log entry |
+| open_faults | bigint | Count of faults where status = 'open' |
+| has_critical_fault | boolean | true if any open fault has severity = 'critical' |
+| last_clean_date | timestamptz | Most recent maintenance_log entry with record_type = 'clean' |
+| last_engine_check_date | timestamptz | Most recent engine_check |
+| last_tyre_check_date | timestamptz | Most recent tyre_check |
+| has_unacknowledged_alert | boolean | true if any maintenance_log row for this vehicle has alert_sent = true |
+
+Previous version referenced legacy `cleans` and `inspections` tables — rebuilt 2026-05-05 to use `maintenance_log`.
 
 ---
 
-### `public.todos` *(dropped)*
+### `public.mileage_collection_alerts` *(exists)*
 
-Legacy table — removed by migration script.
+Duplicate-prevention log for the weekly mileage complete email. One row inserted per fleet week once the alert has fired.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | PK |
+| fleet_week | integer | ISO week number |
+| fleet_year | integer | |
+| sent_at | timestamptz | Default now() |
+| vehicle_count | integer | Number of applicable vehicles that week |
+
+Unique constraint on `(fleet_week, fleet_year)` — prevents race-condition double-send.
+Inserted by `send-mileage-complete-email` edge function once all vehicles for the week are accounted for.
+
+---
+
+### Legacy tables *(dropped 2026-05-05)*
+
+| Table | Reason |
+|---|---|
+| todos | Never used in production |
+| cleans | Superseded by maintenance_log (record_type = 'clean') |
+| inspections | Superseded by maintenance_log (record_type = 'engine_check' / 'tyre_check') |
 
 ---
 
@@ -276,6 +313,7 @@ Legacy table — removed by migration script.
 | maintenance_log | ✓ | ✓ | — | |
 | task_rules | ✓ | — | ✓ | Admin adjusts intervals |
 | vehicle_tyre_specs | ✓ | — | — | Populated via Supabase dashboard only |
+| mileage_collection_alerts | ✓ | ✓ | — | Written by send-mileage-complete-email edge function |
 | mileage_collection_skips | ✓ | ✓ | ✓ | anon UPDATE needed for upsert/ignoreDuplicates pattern |
 | bookings | — | — | — | Authenticated only |
 
@@ -297,9 +335,7 @@ Legacy table — removed by migration script.
 | 20260503xxxxxx | stage2_fix_no_adblue_vehicles | 2026-05-03 | V027 adblue_unit corrected to null; adblue_check removed for 14 no-AdBlue vehicles |
 | 20260504xxxxxx | add_unique_constraint_mileage_collection_skips | 2026-05-04 | Unique constraint on (fleet_week, fleet_year, vehicle_id) |
 | 20260504xxxxxx | anon_update_mileage_collection_skips | 2026-05-04 | anon UPDATE policy on mileage_collection_skips for upsert ignoreDuplicates |
-<<<<<<< HEAD
+| 20260505xxxxxx | create_alert_thresholds | 2026-05-05 | alert_thresholds table created, seeded with 7 default thresholds, RLS applied |
 | 20260505xxxxxx | create_vehicle_tyre_specs | 2026-05-05 | vehicle_tyre_specs table with anon SELECT RLS |
 | 20260505xxxxxx | seed_maintenance_alert_thresholds | 2026-05-05 | tyre_depth_alert_mm = 3.0 added to app_settings |
-=======
-| 20260505xxxxxx | create_alert_thresholds | 2026-05-05 | alert_thresholds table created, seeded with 7 default thresholds, RLS applied |
->>>>>>> origin/master
+| 20260505xxxxxx | drop_legacy_tables_rebuild_vehicle_status | 2026-05-05 | Dropped todos, cleans, inspections; rebuilt vehicle_status view against maintenance_log |
