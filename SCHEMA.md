@@ -137,7 +137,36 @@ Unified history table for all maintenance task types. Replaces the previously pl
 { "headlights": true, "tail_lights": true, "indicators": true, "brake_lights": true, "reverse_lights": true }
 ```
 
-RLS: anon INSERT (drivers submit via QR), anon SELECT (admin dashboard reads).
+RLS: anon INSERT (garage assistant submits via admin interface — NOT drivers via QR), anon SELECT (admin dashboard reads).
+
+---
+
+### `public.alert_thresholds` *(exists — created 2026-05-05)*
+
+Stores configurable alert thresholds. Editable via the admin web interface — never hardcoded in source code.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | PK |
+| record_type | text | Matches maintenance_log.record_type |
+| metric | text | Unique. e.g. 'tyre_depth_min', 'oil_level_min' |
+| threshold_value | numeric | The value that triggers an alert or warning |
+| label | text | Human-readable label for the admin UI |
+| sends_email | boolean | true = alert email fired when threshold breached; false = screen warning only |
+| updated_at | timestamptz | Default now() |
+
+**Known thresholds (default values):**
+| metric | default | notes |
+|---|---|---|
+| tyre_depth_min | 1.6 | UK legal minimum (mm) — triggers alert email |
+| oil_level_min | 5 | Out of 10 — triggers alert email |
+| coolant_level_min | 3 | Out of 10 — screen warning only, no email |
+| brake_fluid_min | 3 | Out of 10 — triggers alert email |
+| adblue_range_warning | 1500 | Miles — amber warning only, no email |
+| adblue_range_critical | 1000 | Miles — triggers alert email |
+| adblue_range_urgent | 500 | Miles — red display only, no second email |
+
+RLS: anon SELECT (admin dashboard reads thresholds to display gauges), authenticated UPDATE (admin adjusts via UI).
 
 ---
 
@@ -231,3 +260,4 @@ Legacy table — removed by migration script.
 | 20260503xxxxxx | stage2_fix_no_adblue_vehicles | 2026-05-03 | V027 adblue_unit corrected to null; adblue_check removed for 14 no-AdBlue vehicles |
 | 20260504xxxxxx | add_unique_constraint_mileage_collection_skips | 2026-05-04 | Unique constraint on (fleet_week, fleet_year, vehicle_id) |
 | 20260504xxxxxx | anon_update_mileage_collection_skips | 2026-05-04 | anon UPDATE policy on mileage_collection_skips for upsert ignoreDuplicates |
+| 20260505xxxxxx | create_alert_thresholds | 2026-05-05 | alert_thresholds table created, seeded with 7 default thresholds, RLS applied |
