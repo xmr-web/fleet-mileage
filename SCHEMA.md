@@ -118,22 +118,30 @@ Unified history table for all maintenance task types. Replaces the previously pl
 
 ```json
 // engine_check
-// Fluid levels: integer 0–10. 0 = bone dry, 5 = midpoint min/max marks, 10 = full.
-// Driver inputs via row of 11 tap buttons on phone screen.
+// Fluid levels: integer 0–10.
+// 0 = manufacturer minimum reached (vehicle warning light territory).
+// 5 = midpoint between min and max marks. 10 = full.
+// Alert thresholds: oil <= 5, brake_fluid <= 3, coolant = 0.
 { "oil_level": 5, "coolant_level": 7, "brake_fluid": 8 }
 
-// tyre_check — depths in mm (UK legal minimum: 1.6mm)
-{ "fl_depth": 4.2, "fr_depth": 3.8, "rl_depth": 2.1, "rr_depth": 1.9, "pressure_ok": true }
+// tyre_check
+// Depths in mm. Alert threshold read from app_settings: tyre_depth_alert_mm (default 3.0mm).
+// UK legal minimum is 1.6mm — alert fires well before that.
+// Pressure in psi, one reading per wheel — stored for history/trend visibility.
+// Expected pressures per vehicle stored in vehicle_tyre_specs table.
+// No automated pressure-drop alert — handled manually if needed.
+{ "fl_depth": 4.2, "fr_depth": 3.8, "rl_depth": 2.1, "rr_depth": 1.9,
+  "fl_psi": 34, "fr_psi": 35, "rl_psi": 33, "rr_psi": 34 }
 
 // adblue_check
-// range_miles: exact figure from dashboard display
-// tank_space_litres: exact figure from dashboard display — nullable (some vehicles don't show it)
+// range_miles: exact figure from dashboard display. Alert threshold: < 1,000 miles.
+// tank_space_litres: exact figure from dashboard display — nullable (some vehicles don't show it).
 { "range_miles": 847, "tank_space_litres": 9.0 }
 
 // clean — checklist of what was completed in the session
 { "interior_vacuumed": true, "windows_cleaned": true, "dashboard_wiped": false, "boot_cleared": false, "exterior_washed": false }
 
-// light_check — pass/fail per cluster (exact fields tbd when building driver form)
+// light_check — pass/fail per cluster. Alert fires if any field = false.
 { "headlights": true, "tail_lights": true, "indicators": true, "brake_lights": true, "reverse_lights": true }
 ```
 
@@ -169,6 +177,34 @@ Unique constraint on `(vehicle_id, record_type)`.
 No-AdBlue vehicles have no `adblue_check` row — absence means task does not apply (not the same as `enabled = false`).
 
 RLS: anon SELECT + anon UPDATE (admin can adjust intervals and toggle enabled flag).
+
+---
+
+### `public.vehicle_tyre_specs` *(exists — created 2026-05-05)*
+
+Stores expected tyre pressures per vehicle. Used for reference on the admin dashboard.
+No automated alert logic — pressure history is visible per wheel in `maintenance_log`.
+
+| Column | Type | Notes |
+|---|---|---|
+| vehicle_id | text | PK, FK → vehicles.id |
+| front_psi | integer | Expected front tyre pressure in psi |
+| rear_psi | integer | Nullable — if null, rear pressure is same as front |
+
+RLS: anon SELECT. Populated and maintained via Supabase dashboard.
+
+---
+
+### `public.app_settings` *(exists)*
+
+Key/value config table. Read by edge functions at runtime.
+
+| Key | Value | Notes |
+|---|---|---|
+| mechanic_email | — | Fault/alert email recipient (TO) |
+| admin_email | — | Fault/alert email recipient (CC) |
+| gmail_user | — | Gmail sender address |
+| tyre_depth_alert_mm | 3.0 | Tread depth alert threshold in mm — adjustable without code change |
 
 ---
 
@@ -210,6 +246,7 @@ Legacy table — removed by migration script.
 | known_issues | ✓ (resolved=false) | — | — | |
 | maintenance_log | ✓ | ✓ | — | |
 | task_rules | ✓ | — | ✓ | Admin adjusts intervals |
+| vehicle_tyre_specs | ✓ | — | — | Populated via Supabase dashboard only |
 | mileage_collection_skips | ✓ | ✓ | ✓ | anon UPDATE needed for upsert/ignoreDuplicates pattern |
 | bookings | — | — | — | Authenticated only |
 
@@ -231,3 +268,5 @@ Legacy table — removed by migration script.
 | 20260503xxxxxx | stage2_fix_no_adblue_vehicles | 2026-05-03 | V027 adblue_unit corrected to null; adblue_check removed for 14 no-AdBlue vehicles |
 | 20260504xxxxxx | add_unique_constraint_mileage_collection_skips | 2026-05-04 | Unique constraint on (fleet_week, fleet_year, vehicle_id) |
 | 20260504xxxxxx | anon_update_mileage_collection_skips | 2026-05-04 | anon UPDATE policy on mileage_collection_skips for upsert ignoreDuplicates |
+| 20260505xxxxxx | create_vehicle_tyre_specs | 2026-05-05 | vehicle_tyre_specs table with anon SELECT RLS |
+| 20260505xxxxxx | seed_maintenance_alert_thresholds | 2026-05-05 | tyre_depth_alert_mm = 3.0 added to app_settings |
