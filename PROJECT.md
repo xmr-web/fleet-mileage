@@ -27,15 +27,28 @@ A mobile-first fleet management platform built around QR codes. Each vehicle get
 - Known issues screen shows active fleet-team notes for that vehicle (e.g. "rear wiper not working") to prevent duplicate fault reports
 - Known issues are managed by admin/mechanics from the dashboard
 
-### Stage 2 — Scheduled maintenance & automated alerts *(in progress)*
-- Engine checks (oil, coolant, brake fluid) every 14 days — submitted via QR code
-- Tyre checks (tread depth + pressure) every 28 days — submitted via QR code
-- AdBlue checks every 14 days — submitted via QR code (also captured reactively via fault report). AdBlue vehicles only (18 of 32).
-- Light checks every 30 days — Ford, Toyota, Renault vehicles only (7 of 32)
+**Completed (2026-05-05):**
+- `alert_thresholds` table created and seeded in Supabase with 7 default thresholds
+- `checks.html`, `checks.css`, `checks.js` created in `/admin/` — garage assistant check forms, fully working
+- `vite.config.js` updated to include `checks` as a named entry point
+- Both navigation routes working: check type first (picker → vehicle list → form) and vehicle first (landing → checks due → form)
+- Threshold evaluation on submit — alerts shown on confirmation screen
+- Vehicle photo displayed on all check entry forms
+
+**IMPORTANT — who does what:**
+- **Drivers** (via QR code) report only: mileage, and faults that are visible to them — warning lights on the dashboard (AdBlue low, engine warning etc.), flat or damaged tyres, windscreen chips, dents, bulbs out.
+- **Garage assistant** (via `/admin/` interface) performs all regular scheduled checks: engine fluids, tyres, AdBlue levels, light checks, deep cleans. These are NOT submitted by drivers and are NOT QR-code driven. The garage assistant works through a list, vehicle by vehicle.
+
+- Engine checks (oil, coolant, brake fluid) every 14 days — submitted by garage assistant via admin interface
+- Tyre checks (tread depth + pressure) every 28 days — submitted by garage assistant via admin interface
+- AdBlue checks every 14 days — submitted by garage assistant via admin interface (also captured reactively when a driver reports AdBlue low via fault report). AdBlue vehicles only (18 of 32).
+- Light checks every 30 days — Ford, Toyota, Renault vehicles only (7 of 32) — submitted by garage assistant
 - Deep clean log — no fixed schedule, log only (Martin is sole cleaner; visibility of what was done last time is the goal)
 - Automatic email to fleet mechanic when thresholds are breached (e.g. tyre depth < 1.6mm, oil level low)
+- Alert thresholds are configurable via the admin web interface — never hardcoded
 - Admin dashboard shows gauges per vehicle: fluid levels (thermometer 0–10), AdBlue range (speedometer to 20,000 miles), tyre depths
-- Admin can manage task schedules and per-vehicle rule overrides
+- Admin can manage task schedules, alert thresholds, and per-vehicle rule overrides
+- **Custom alerts:** admin can fire a one-off alert email from the dashboard by selecting a vehicle, typing a description (e.g. "Worn wipers need replacing"), and hitting a button. This inserts a row into the `faults` table with `fault_type = 'admin_alert'`, triggering the existing `send-fault-email` webhook. No new infrastructure needed.
 
 ### Stage 3 — Driver fault reports *(absorbed into Stage 1.5)*
 
@@ -169,6 +182,8 @@ Vehicle photos: filename saved as `{id}.{ext}` in `image_url`. Public URL constr
 - Fluid levels (oil, coolant, brake fluid) stored as integer 0–10. Driver inputs via 11 tap buttons.
 - AdBlue range = exact miles from dashboard. Tank space = exact litres from dashboard (nullable).
 - Driver app never prompts for overdue tasks — admin dashboard tracks and chases
+- Drivers NEVER perform scheduled maintenance checks — that is exclusively the garage assistant's role
+- Alert thresholds (e.g. tyre depth minimum, fluid level minimums, AdBlue range warning levels) are stored in the database and configurable via the admin interface — never hardcoded in source code
 - `maintenance_log` is unified — no separate `inspections` or `cleans` tables
 - Clean has no interval — log only, never flagged overdue
 - No-AdBlue vehicles have no `adblue_check` row in `task_rules` (absent ≠ disabled)
@@ -242,10 +257,11 @@ Vehicle photos: filename saved as `{id}.{ext}` in `image_url`. Public URL constr
 - [FIXED 2026-05-04] Mileage complete email: raw vehicle data appearing above sender, sender showing raw email address, "Dum=p" encoding artifact. Fixed by: (1) adding hidden HTML preheader div to control Gmail preview snippet; (2) stripping all non-ASCII chars from plain-text fallback to prevent quoted-printable encoding corruption; (3) quoting the display name in `from` field as `"Fleet Alerts" <addr>`. Redeployed as v5.
 - [FIXED 2026-05-05] Mileage email: =20 encoded spaces appearing before table, sort was by plate not vehicle ID, out vehicles not identified in warning note. Fixed by: (1) replacing all template literals with string concatenation to eliminate indentation whitespace that triggers quoted-printable =20 encoding; (2) sorting rows by vehicle id (V001, V002...) instead of plate; (3) appending out vehicle plates to warning note e.g. "3 vehicles were out (LJ17, YG63, ...)". Redeployed as v6.
 - [FIXED 2026-05-05] Admin dashboard was advancing to the new fleet week on Monday instead of Friday. `getFleetWeek()` was only subtracting 1 day (keeping Monday on the previous week) but Tue/Wed/Thu rolled forward. Changed logic to always step back to the most recent Friday, so the display stays on the previous week's collection all the way through Thursday.
+- [FIXED 2026-05-05] `checks.html` screens were blank after navigation — `hidden` class from `admin.css` uses `display: none !important` which overrode the `active` class in `checks.css`. Fixed by explicitly removing `hidden` before adding `active` in `showScreen()`.
 
 ---
 
-## Current status (as of 2026-05-04)
+## Current status (as of 2026-05-05)
 
 - Driver app (choice, mileage, fault, known issues): working ✓
 - Admin dashboard (vehicles, mileage, QR codes): working ✓
@@ -253,10 +269,9 @@ Vehicle photos: filename saved as `{id}.{ext}` in `image_url`. Public URL constr
 - RLS enabled on all tables ✓
 - Fault report emails: working ✓
 - Stage 2 schema: fully designed, migrated, and seeded ✓
-  - `maintenance_log` + `task_rules` created ✓
-  - `adblue_unit` on vehicles populated for all 32 ✓
-  - task_rules seeded per vehicle per applicable task type ✓
-- "Vehicle Out" now persists `active = false` to Supabase (2026-05-04) ✓
+- `alert_thresholds` table: created and seeded ✓
+- Garage assistant check forms (`checks.html`): working ✓
+- Maintenance threshold email alerts: **not yet built** (next session)
 
 ---
 
@@ -268,7 +283,10 @@ Vehicle photos: filename saved as `{id}.{ext}` in `image_url`. Public URL constr
 - [ ] Add Known Issues management UI to admin dashboard
 - [x] Build garage assistant mileage collection UI (list-driven, pending/done, week-based)
 - [x] "All done" email to fleet mechanic when mileage collection complete
-- [ ] Build Stage 2 driver-facing forms: engine check, tyre check, AdBlue check, light check, deep clean
+- [x] Build garage assistant check forms (checks.html) ✓
+- [x] `alert_thresholds` table created and seeded ✓
+- [ ] Maintenance threshold email alerts (next session)
+- [ ] Admin threshold editor UI
 - [ ] Improve AdBlue fault report flow — capture exact miles + tank space
 - [ ] Build admin maintenance dashboard: overdue list, fluid gauges, AdBlue speedometer, tyre depths
 - [ ] Set up maintenance threshold email alerts

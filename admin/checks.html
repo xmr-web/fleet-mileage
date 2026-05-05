@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fleet Checks</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./admin.css" />
+    <link rel="stylesheet" href="./checks.css" />
+  </head>
+  <body>
+    <div id="app">
+
+      <header class="site-header">
+        <div class="header-inner">
+          <div class="logo">
+            <a href="./index.html" class="logo-back">‹</a>
+            <span class="logo-icon">◈</span>
+            <span class="logo-text">FLEET<strong>CHECKS</strong></span>
+          </div>
+        </div>
+      </header>
+
+      <main class="main-content">
+
+        <!-- ── SCREEN: type picker (default when no ?type or ?vehicle param) ── -->
+        <section id="screen-picker" class="check-screen hidden">
+          <div class="panel-header">
+            <h1>Vehicle Checks</h1>
+          </div>
+          <p class="checks-intro">Select a check type to see which vehicles are due, or go to a specific vehicle from the Vehicles tab.</p>
+          <div class="check-type-grid" id="check-type-grid">
+            <!-- rendered by JS -->
+          </div>
+        </section>
+
+        <!-- ── SCREEN: vehicle list for a check type ── -->
+        <section id="screen-vehicle-list" class="check-screen hidden">
+          <div class="panel-header">
+            <button class="btn-back" id="back-to-picker">‹ Check Types</button>
+            <h1 id="vehicle-list-title">Engine Checks</h1>
+          </div>
+
+          <div class="checks-section" id="overdue-section">
+            <div class="checks-section-header">
+              <span class="checks-section-label overdue-label">Overdue</span>
+              <span class="checks-section-count" id="overdue-count">0</span>
+            </div>
+            <div class="checks-vehicle-list" id="overdue-list">
+              <div class="loading-state">Loading…</div>
+            </div>
+          </div>
+
+          <div class="checks-section" id="uptodate-section">
+            <div class="checks-section-header">
+              <span class="checks-section-label uptodate-label">Up to date</span>
+              <span class="checks-section-count" id="uptodate-count">0</span>
+            </div>
+            <div class="checks-vehicle-list" id="uptodate-list"></div>
+          </div>
+        </section>
+
+        <!-- ── SCREEN: checks due for a specific vehicle ── -->
+        <section id="screen-vehicle-checks" class="check-screen hidden">
+          <div class="panel-header">
+            <button class="btn-back" id="back-from-vehicle">‹ Vehicles</button>
+          </div>
+          <div class="vehicle-check-header" id="vehicle-check-header">
+            <!-- vehicle photo, plate, name rendered by JS -->
+          </div>
+          <div class="checks-type-list" id="vehicle-checks-list">
+            <div class="loading-state">Loading…</div>
+          </div>
+        </section>
+
+        <!-- ── SCREEN: check entry form ── -->
+        <section id="screen-form" class="check-screen hidden">
+          <div class="panel-header">
+            <button class="btn-back" id="back-from-form">‹ Back</button>
+          </div>
+
+          <!-- Vehicle identity banner -->
+          <div class="form-vehicle-banner" id="form-vehicle-banner">
+            <img class="form-vehicle-photo" id="form-vehicle-photo" src="" alt="" />
+            <div class="form-vehicle-info">
+              <div class="form-vehicle-plate" id="form-vehicle-plate"></div>
+              <div class="form-vehicle-name" id="form-vehicle-name"></div>
+              <div class="form-check-type-label" id="form-check-type-label"></div>
+            </div>
+          </div>
+
+          <!-- Previous reading -->
+          <div class="form-prev-reading" id="form-prev-reading">
+            <!-- rendered by JS -->
+          </div>
+
+          <!-- Mileage input (always shown) -->
+          <div class="form-field">
+            <label class="form-label">Current odometer reading</label>
+            <input
+              type="number"
+              id="form-mileage"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              placeholder="0"
+              min="0"
+              autocomplete="off"
+              class="form-mileage-input"
+            />
+          </div>
+
+          <!-- Dynamic fields rendered by JS depending on check type -->
+          <div id="form-fields"></div>
+
+          <button class="btn-primary form-submit-btn" id="form-submit-btn">Submit Check</button>
+        </section>
+
+        <!-- ── SCREEN: confirmation ── -->
+        <section id="screen-confirm" class="check-screen hidden">
+          <div class="confirm-inner">
+            <div class="confirm-icon">✓</div>
+            <h2 class="confirm-title" id="confirm-title">Check Recorded</h2>
+            <p class="confirm-subtitle" id="confirm-subtitle"></p>
+            <div class="confirm-alerts" id="confirm-alerts">
+              <!-- any threshold breaches shown here -->
+            </div>
+            <div class="confirm-actions">
+              <button class="btn-primary" id="confirm-next-btn">Next Vehicle</button>
+              <button class="btn-secondary" id="confirm-menu-btn">Back to Check Types</button>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <script type="module" src="./checks.js"></script>
+  </body>
+</html>

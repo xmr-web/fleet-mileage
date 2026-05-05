@@ -103,6 +103,9 @@ function renderVehicleGrid() {
         <div class="vehicle-card-id">${v.plate}</div>
         <div class="vehicle-card-name">${v.name}</div>
         <div class="vehicle-card-mileage">Current mileage: <strong>${v.current_mileage?.toLocaleString() ?? '&#x2014;'}</strong></div>
+        <div class="vehicle-card-actions">
+          <a class="btn-icon" href="./checks.html?vehicle=${v.id}">Checks →</a>
+        </div>
       </div>
     </div>
   `).join('');
