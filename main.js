@@ -53,8 +53,8 @@ async function init() {
   // Load vehicle + known issues count in parallel
   const [vehicleRes, issuesRes] = await Promise.all([
     supabase.from('vehicles').select('*').eq('id', vehicleId).single(),
-    supabase.from('known_issues').select('id', { count: 'exact', head: true })
-      .eq('vehicle_id', vehicleId).eq('resolved', false)
+    supabase.from('faults').select('id', { count: 'exact', head: true })
+      .eq('vehicle_id', vehicleId).eq('is_known_issue', true).neq('status', 'resolved')
   ])
 
   if (vehicleRes.error || !vehicleRes.data) {

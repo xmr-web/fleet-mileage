@@ -32,11 +32,12 @@ async function init() {
 
   const [vehicleRes, issuesRes] = await Promise.all([
     supabase.from('vehicles').select('id, name').eq('id', vehicleId).single(),
-    supabase.from('known_issues')
-      .select('id, description, added_by, added_at')
+    supabase.from('faults')
+      .select('id, description, driver_name, reported_at, fault_type')
       .eq('vehicle_id', vehicleId)
-      .eq('resolved', false)
-      .order('added_at', { ascending: false })
+      .eq('is_known_issue', true)
+      .neq('status', 'resolved')
+      .order('reported_at', { ascending: false })
   ])
 
   if (vehicleRes.error || !vehicleRes.data) {
@@ -55,10 +56,10 @@ async function init() {
   } else {
     const list = document.getElementById('issues-list')
     issues.forEach(issue => {
-      const date = new Date(issue.added_at).toLocaleDateString('en-GB', {
+      const date = new Date(issue.reported_at).toLocaleDateString('en-GB', {
         day: 'numeric', month: 'short', year: 'numeric'
       })
-      const by = issue.added_by ? `Logged by ${issue.added_by}` : 'Logged by fleet team'
+      const by = issue.driver_name ? `Reported by ${issue.driver_name}` : 'Reported by driver'
 
       const el = document.createElement('div')
       el.className = 'ki-item'
