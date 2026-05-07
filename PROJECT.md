@@ -119,7 +119,13 @@ fleet-mileage/
 └── admin/
     ├── index.html       # Admin dashboard
     ├── admin.js         # Admin logic
-    └── admin.css        # Admin styles
+    ├── admin.css        # Admin styles
+    ├── checks.html      # Garage assistant check forms
+    ├── checks.js        # Check form logic
+    ├── checks.css       # Check form styles
+    ├── mechanic.html    # Mechanic dashboard
+    ├── mechanic.js      # Mechanic dashboard logic
+    └── mechanic.css     # Mechanic dashboard styles
 ```
 
 ---
@@ -153,16 +159,24 @@ fleet-mileage/
 5. On submit: inserts into `faults` table
 
 ### Known issues (known-issues.html)
-1. Fetches all `known_issues` where `resolved = false` for the vehicle
+1. Fetches all `faults` where `is_known_issue = true AND status != 'resolved'` for the vehicle
 2. If none: green "No Known Issues" screen
-3. If any: lists each issue with description, who logged it, and date
+3. If any: lists each issue with description, driver name, and reported date
 4. Back button returns to choice screen
+
+Note: `known_issues` table dropped 2026-05-07. Known issues are now managed via the `is_known_issue` flag on `faults`, toggled by the mechanic dashboard.
 
 ### Admin dashboard
 Three tabs:
 - **Vehicles** — list all vehicles, add new (with photo upload), delete
 - **Mileage** — list with current mileage and plate; click for full history modal
 - **QR Codes** — generates QR codes client-side (canvas), plate only under each code
+
+### Mechanic dashboard (`/admin/mechanic.html`)
+Three tabs:
+- **Mileage** — read-only view of current fleet week collection status. Pending vehicles listed; collected vehicles (with mileage + time) collapsed by default.
+- **Faults** — all open/in-progress faults across the fleet. Filter by Open / In Progress / All. In-row ⚑ button toggles `is_known_issue` immediately via `set_fault_known_issue()` RPC. Clicking a row opens detail modal with photo (signed URL — `fault-photos` is private), status selector, mechanic notes textarea, known-issue toggle, and Save button.
+- **Maintenance** — two sections: (1) Overdue checks — calculated at query time from `task_rules × vehicles × maintenance_log`; never-done vehicles shown first. (2) Threshold alerts — `maintenance_log` rows where `alert_sent = true`.
 
 Vehicle photos: filename saved as `{id}.{ext}` in `image_url`. Public URL constructed at runtime as `${SUPABASE_URL}/storage/v1/object/public/vehicle-images/${encodeURIComponent(filename)}`. Bucket is **public**.
 
@@ -232,10 +246,17 @@ Vehicle photos: filename saved as `{id}.{ext}` in `image_url`. Public URL constr
 - Same Gmail SMTP pattern as fault emails
 - Subject: `Week N Mileage Collection Complete - N vehicles`
 
-### Maintenance threshold alerts *(planned — Stage 2)*
-- Same pattern as fault emails
-- Webhook on INSERT to `maintenance_log`
-- `alert_sent` flag prevents duplicate sends
+### Maintenance threshold alerts *(deployed 2026-05-05 ✓)*
+- Edge Function: `send-maintenance-alert` (`supabase/functions/send-maintenance-alert/index.ts`)
+- Database Webhook: `on_maintenance_log_inserted` — fires on INSERT to `maintenance_log`
+- `clean` record_type is silently skipped — never triggers an alert
+- Alert thresholds: oil <= 5, brake_fluid <= 3, coolant = 0 (all out of 10; 0 = manufacturer minimum reached)
+- Tyre depth threshold read from `app_settings.tyre_depth_alert_mm` (default 3.0mm — adjustable without code change)
+- AdBlue alert: range_miles < 1,000
+- Light check alert: any field = false
+- `alert_sent` flag set true on the `maintenance_log` row after email sent
+- Sends to mechanic (TO) and admin (CC) via same Gmail SMTP pattern
+- Subject: `Maintenance Alert -- {vehicle} -- {record_type}`
 
 ---
 
@@ -258,10 +279,11 @@ Vehicle photos: filename saved as `{id}.{ext}` in `image_url`. Public URL constr
 - [FIXED 2026-05-05] Mileage email: =20 encoded spaces appearing before table, sort was by plate not vehicle ID, out vehicles not identified in warning note. Fixed by: (1) replacing all template literals with string concatenation to eliminate indentation whitespace that triggers quoted-printable =20 encoding; (2) sorting rows by vehicle id (V001, V002...) instead of plate; (3) appending out vehicle plates to warning note e.g. "3 vehicles were out (LJ17, YG63, ...)". Redeployed as v6.
 - [FIXED 2026-05-05] Admin dashboard was advancing to the new fleet week on Monday instead of Friday. `getFleetWeek()` was only subtracting 1 day (keeping Monday on the previous week) but Tue/Wed/Thu rolled forward. Changed logic to always step back to the most recent Friday, so the display stays on the previous week's collection all the way through Thursday.
 - [FIXED 2026-05-05] `checks.html` screens were blank after navigation — `hidden` class from `admin.css` uses `display: none !important` which overrode the `active` class in `checks.css`. Fixed by explicitly removing `hidden` before adding `active` in `showScreen()`.
+- [FIXED 2026-05-05] Mileage "out" vehicles not persisted across devices — `loadCollectionData` was reading out vehicle IDs from `sessionStorage` (browser memory, per tab) instead of `mileage_collection_skips` in Supabase. Opening the page on any other device showed out vehicles as pending. Fixed by reading from `mileage_collection_skips` on load and syncing `sessionStorage` from that. `undoOut` now also deletes the skip row from Supabase (previously only updated `vehicles.active`).
 
 ---
 
-## Current status (as of 2026-05-05)
+## Current status (as of 2026-05-07)
 
 - Driver app (choice, mileage, fault, known issues): working ✓
 - Admin dashboard (vehicles, mileage, QR codes): working ✓
@@ -270,8 +292,16 @@ Vehicle photos: filename saved as `{id}.{ext}` in `image_url`. Public URL constr
 - Fault report emails: working ✓
 - Stage 2 schema: fully designed, migrated, and seeded ✓
 - `alert_thresholds` table: created and seeded ✓
+- `vehicle_tyre_specs` table: created — ready for Martin to populate via Supabase dashboard ✓
 - Garage assistant check forms (`checks.html`): working ✓
-- Maintenance threshold email alerts: **not yet built** (next session)
+- Maintenance threshold email alerts: deployed and live ✓
+- `send-mileage-complete-email`: confirmed fully functional ✓
+- Legacy tables dropped: `todos`, `cleans`, `inspections` ✓
+- `vehicle_status` view rebuilt against `maintenance_log` ✓
+- Mileage "out" vehicles bug fixed — now reads from `mileage_collection_skips` ✓
+- `known_issues` table dropped — replaced by `is_known_issue` flag on `faults` ✓
+- Driver `known-issues.js` and `main.js` updated to query `faults` instead of `known_issues` ✓
+- Mechanic dashboard (`/admin/mechanic.html`) built: Mileage | Faults | Maintenance tabs ✓
 
 ---
 
@@ -280,13 +310,14 @@ Vehicle photos: filename saved as `{id}.{ext}` in `image_url`. Public URL constr
 - [x] Stage 2 schema agreed and applied
 - [x] adblue_unit populated for all 32 vehicles
 - [x] task_rules seeded correctly
-- [ ] Add Known Issues management UI to admin dashboard
+- [x] ~~Add Known Issues management UI to admin dashboard~~ — replaced by is_known_issue flag on faults, managed via mechanic dashboard
 - [x] Build garage assistant mileage collection UI (list-driven, pending/done, week-based)
 - [x] "All done" email to fleet mechanic when mileage collection complete
 - [x] Build garage assistant check forms (checks.html) ✓
 - [x] `alert_thresholds` table created and seeded ✓
-- [ ] Maintenance threshold email alerts (next session)
+- [x] Maintenance threshold email alerts ✓
 - [ ] Admin threshold editor UI
+- [ ] Populate `vehicle_tyre_specs` table with expected pressures for all 32 vehicles (Martin — via Supabase dashboard)
 - [ ] Improve AdBlue fault report flow — capture exact miles + tank space
 - [ ] Build admin maintenance dashboard: overdue list, fluid gauges, AdBlue speedometer, tyre depths
 - [ ] Set up maintenance threshold email alerts
