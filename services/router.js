@@ -42,40 +42,58 @@ export class Router {
     }
 
     initializeComponents() {
+        console.log(`initializeComponents called for route: ${this.currentRoute}`);
         // Initialize the current route's component
         switch (this.currentRoute) {
             case 'driver':
                 if (window.driverComponent) {
+                    console.log('Initializing driver component');
                     window.driverComponent.init();
+                } else {
+                    console.log('Driver component not found');
                 }
                 break;
             case 'garage':
                 if (window.garageComponent) {
+                    console.log('Initializing garage component');
                     window.garageComponent.init();
+                } else {
+                    console.log('Garage component not found');
                 }
                 break;
             case 'mechanic':
                 if (window.mechanicComponent) {
+                    console.log('Initializing mechanic component');
                     window.mechanicComponent.init();
+                } else {
+                    console.log('Mechanic component not found');
                 }
                 break;
             case 'manager':
                 if (window.managerComponent) {
+                    console.log('Initializing manager component');
                     window.managerComponent.init();
+                } else {
+                    console.log('Manager component not found');
                 }
                 break;
         }
     }
 
     showView(role) {
+        console.log(`showView called with role: ${role}`);
+        
         // Hide all views
         document.querySelectorAll('.role-view').forEach(view => {
+            console.log(`Hiding view: ${view.id}`);
             view.style.display = 'none';
         });
         
         // Show selected view
         const targetView = document.getElementById(`${role}-view`);
+        console.log(`Target view found: ${!!targetView}`);
         if (targetView) {
+            console.log(`Showing view: ${targetView.id}`);
             targetView.style.display = 'block';
         }
         
