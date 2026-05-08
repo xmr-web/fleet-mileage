@@ -1,17 +1,9 @@
 import { defineConfig } from 'vite';
-import { resolve } from 'path';
 
 export default defineConfig({
   build: {
     rollupOptions: {
-      input: {
-        main:        resolve(__dirname, 'index.html'),
-        faultReport: resolve(__dirname, 'fault-report.html'),
-        knownIssues: resolve(__dirname, 'known-issues.html'),
-        admin:       resolve(__dirname, 'admin/index.html'),
-        checks:      resolve(__dirname, 'admin/checks.html'),
-        mechanic:    resolve(__dirname, 'admin/mechanic.html'),
-      },
+      input: 'index.html',
     },
   },
 });
