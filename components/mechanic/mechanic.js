@@ -234,16 +234,16 @@ function viewFaultDetails(faultId) {
 }
 
 function showMechanicLoading() {
-    const mechanicView = document.getElementById('mechanic-view');
-    if (mechanicView) {
-        mechanicView.innerHTML = '<div class="loading">Loading dashboard...</div>';
+    const container = document.getElementById('mechanic-container');
+    if (container) {
+        container.innerHTML = '<div class="loading">Loading dashboard...</div>';
     }
 }
 
 function showMechanicError(message) {
-    const mechanicView = document.getElementById('mechanic-view');
-    if (mechanicView) {
-        mechanicView.innerHTML = `<div class="error">${message}</div>`;
+    const container = document.getElementById('mechanic-container');
+    if (container) {
+        container.innerHTML = `<div class="error">${message}</div>`;
     }
 }
 

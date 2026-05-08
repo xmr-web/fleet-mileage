@@ -11,8 +11,8 @@ let managerElements = {};
 // ============================================================
 export function initManagerView() {
     console.log('Initializing manager view');
-    
-    showManagerPlaceholder();
+    // Manager view already has coming soon content in index.html
+    // No need to replace it
 }
 
 function showManagerPlaceholder() {
