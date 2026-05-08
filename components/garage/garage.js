@@ -2,7 +2,7 @@
 // Garage Assistant Component - Vehicle Management
 // ============================================================
 import { getAllVehicles, getMileage, addMileage, getAlerts, createAlert, updateVehicle } from '../../services/supabase.js';
-import qrcode from 'qrcode-generator';
+import qrcode from 'qrcode-generator/dist/qrcode.mjs';
 
 // DOM elements for garage view
 let garageElements = {};
