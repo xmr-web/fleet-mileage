@@ -88,8 +88,13 @@ export class Router {
 
     setupNavigation() {
         // Add click handlers for navigation
-        document.querySelectorAll('[data-route]').forEach(link => {
+        const navButtons = document.querySelectorAll('[data-route]');
+        console.log(`Found ${navButtons.length} navigation buttons`);
+        
+        navButtons.forEach(link => {
+            console.log(`Setting up click handler for button: ${link.textContent} -> ${link.getAttribute('data-route')}`);
             link.addEventListener('click', (e) => {
+                console.log(`Button clicked: ${link.textContent}`);
                 e.preventDefault();
                 const route = link.getAttribute('data-route');
                 this.navigateTo(route);
