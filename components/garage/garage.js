@@ -1,11 +1,12 @@
 // ============================================================
 // Garage Assistant Component - Vehicle Management
 // ============================================================
-import { getAllVehicles, getMileage, addMileage, getAlerts, createAlert } from '../../services/supabase.js';
+import { getAllVehicles, getMileage, addMileage, getAlerts, createAlert, updateVehicle } from '../../services/supabase.js';
 import qrcode from 'qrcode-generator';
 
 // DOM elements for garage view
 let garageElements = {};
+let currentVehicles = [];
 
 // ============================================================
 // Load garage HTML content
@@ -99,19 +100,19 @@ async function loadAllVehicles() {
     try {
         showGarageLoading();
         
-        const vehicles = await getAllVehicles();
+        currentVehicles = await getAllVehicles();
         const outVehicles = getOutFromSession();
         
         // Filter vehicles based on toggle states
         const doneToggle = document.getElementById('done-toggle');
         const outToggle = document.getElementById('out-toggle');
         
-        let filteredVehicles = vehicles;
+        let filteredVehicles = currentVehicles;
         
         if (outToggle?.checked) {
-            filteredVehicles = vehicles.filter(v => outVehicles.includes(v.id));
+            filteredVehicles = currentVehicles.filter(v => outVehicles.includes(v.id));
         } else if (doneToggle?.checked) {
-            filteredVehicles = vehicles.filter(v => !outVehicles.includes(v.id));
+            filteredVehicles = currentVehicles.filter(v => !outVehicles.includes(v.id));
         }
         
         displayVehicles(filteredVehicles);
@@ -170,8 +171,8 @@ async function displayVehicles(vehicles) {
                             </div>
                         </div>
                         <div class="vehicle-actions">
-                            <button class="btn btn-sm" onclick="openEntryModal('${vehicle.id}')">Enter Mileage</button>
-                            <button class="btn btn-sm btn-secondary" onclick="toggleVehicleOut('${vehicle.id}')">
+                            <button class="btn btn-sm" onclick="window.garageComponent.openEntryModal('${vehicle.id}')">Enter Mileage</button>
+                            <button class="btn btn-sm btn-secondary" onclick="window.garageComponent.toggleVehicleOut('${vehicle.id}')">
                                 ${outVehicles.includes(vehicle.id) ? 'Mark In' : 'Mark Out'}
                             </button>
                         </div>
@@ -188,7 +189,7 @@ async function displayVehicles(vehicles) {
 
 function openEntryModal(vehicleId) {
     const modal = document.getElementById('entry-modal');
-    const vehicleData = vehicles.find(v => v.id === vehicleId);
+    const vehicleData = currentVehicles.find(v => v.id === vehicleId);
     
     if (!modal || !vehicleData) return;
     
@@ -284,9 +285,13 @@ function showGarageError(message) {
 }
 
 async function updateVehicleLastMileage(vehicleId, mileage) {
-    // This would need to be implemented in supabase.js
-    // For now, we'll just reload the page
-    console.log(`Updated vehicle ${vehicleId} mileage to ${mileage}`);
+    try {
+        await updateVehicle(vehicleId, { last_mileage: mileage });
+        console.log(`Updated vehicle ${vehicleId} mileage to ${mileage}`);
+    } catch (error) {
+        console.error('Error updating vehicle mileage:', error);
+        throw error;
+    }
 }
 
 // QR Code generation
@@ -309,5 +314,7 @@ function downloadQRCode(vehicleId, vehicleName) {
 
 // Export for router
 window.garageComponent = {
-    init: initGarageView
+    init: initGarageView,
+    openEntryModal,
+    toggleVehicleOut
 };
