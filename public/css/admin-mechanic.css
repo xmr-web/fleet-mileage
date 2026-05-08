@@ -1,0 +1,367 @@
+/* ══ Mechanic Dashboard — additional styles (admin.css is the base) ══ */
+
+/* ── Tab badge (fault count) ── */
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  min-width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 100px;
+  padding: 0 0.3rem;
+  margin-left: 0.3rem;
+  vertical-align: middle;
+}
+
+/* ── Admin link in header ── */
+.mech-admin-link {
+  margin-left: auto;
+  text-decoration: none;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* ── Filter row ── */
+.mech-filter-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+.mech-select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  outline: none;
+}
+.mech-select:focus { border-color: var(--accent); }
+
+/* ── Mileage tab read-only rows ── */
+/* Pending row — no action button, just info */
+.mech-mileage-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: grid;
+  grid-template-columns: 90px 1fr 160px;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.1rem;
+}
+.mech-mileage-row--done {
+  grid-template-columns: 90px 1fr 160px 160px;
+  opacity: 0.7;
+}
+.mech-mileage-row--done:hover { opacity: 1; }
+
+/* ── Fault list ── */
+.mech-fault-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mech-fault-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem 1.1rem;
+  display: grid;
+  grid-template-columns: 90px 110px 1fr 140px 36px;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.mech-fault-row:hover { border-color: var(--accent); }
+
+/* severity left border stripe */
+.mech-fault-row--critical { border-left: 3px solid var(--danger); }
+.mech-fault-row--high     { border-left: 3px solid #f97316; }
+.mech-fault-row--normal   { border-left: 3px solid var(--border); }
+.mech-fault-row--low      { border-left: 3px solid var(--text-muted); }
+
+.mf-plate {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.mf-type {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.mf-desc {
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mf-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: right;
+  white-space: nowrap;
+}
+.mf-ki-icon {
+  font-size: 1rem;
+  color: var(--text-muted);
+  text-align: center;
+  cursor: pointer;
+  transition: color 0.15s;
+  border: none;
+  background: none;
+  padding: 0;
+  line-height: 1;
+}
+.mf-ki-icon:hover     { color: var(--accent); }
+.mf-ki-icon.active    { color: var(--accent); }
+
+/* severity badge */
+.severity-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.55rem;
+  border-radius: 100px;
+}
+.severity-badge--critical { background: rgba(224,82,82,0.15); color: var(--danger); }
+.severity-badge--high     { background: rgba(249,115,22,0.15); color: #f97316; }
+.severity-badge--normal   { background: var(--surface2); color: var(--text-muted); }
+.severity-badge--low      { background: var(--surface2); color: var(--text-muted); }
+
+/* ── Fault detail modal ── */
+.mech-fault-detail { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.mfd-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.mfd-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.mfd-value { font-size: 0.9rem; }
+
+.mfd-photo {
+  width: 100%;
+  max-height: 260px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+/* status select inside modal */
+.mfd-status-select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  outline: none;
+  width: 100%;
+}
+.mfd-status-select:focus { border-color: var(--accent); }
+
+/* mechanic notes textarea */
+.mfd-notes-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius);
+  resize: vertical;
+  min-height: 80px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.mfd-notes-input:focus { border-color: var(--accent); }
+
+.mfd-known-issue-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+}
+.mfd-ki-label { font-size: 0.85rem; flex: 1; }
+.mfd-ki-label small { display: block; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.1rem; }
+
+/* toggle switch */
+.mfd-toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.mfd-toggle input { opacity: 0; width: 0; height: 0; }
+.mfd-toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.mfd-toggle input:checked + .mfd-toggle-track { background: var(--accent); }
+.mfd-toggle-track::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+.mfd-toggle input:checked + .mfd-toggle-track::after { transform: translateX(18px); }
+
+.mfd-save-btn {
+  width: 100%;
+  padding: 0.7rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+}
+
+/* ── Maintenance section ── */
+.mech-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+.mech-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.mech-section-count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--surface2);
+  color: var(--text-muted);
+  padding: 0.15rem 0.55rem;
+  border-radius: 100px;
+  min-width: 1.6rem;
+  text-align: center;
+}
+.mech-section-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.overdue-label { color: var(--danger); }
+.alert-label   { color: #f97316; }
+
+/* Overdue table */
+.mech-overdue-list,
+.mech-alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.mech-overdue-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: grid;
+  grid-template-columns: 90px 1fr 130px 130px;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.1rem;
+}
+.mech-overdue-row--urgent { border-left: 3px solid var(--danger); }
+
+.mech-alert-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid #f97316;
+  border-radius: var(--radius);
+  display: grid;
+  grid-template-columns: 90px 120px 1fr 140px;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.1rem;
+}
+
+.mor-plate { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; }
+.mor-name  { font-family: var(--font-head); font-weight: 600; font-size: 0.9rem; }
+.mor-type  { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.mor-days  { font-size: 0.8rem; color: var(--danger); font-weight: 600; text-align: right; }
+
+.mar-plate  { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; }
+.mar-type   { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.mar-detail { font-size: 0.85rem; }
+.mar-date   { font-size: 0.75rem; color: var(--text-muted); text-align: right; white-space: nowrap; }
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .mech-fault-row {
+    grid-template-columns: 90px 1fr 36px;
+    grid-template-rows: auto auto;
+    gap: 0.35rem 0.75rem;
+  }
+  .mf-plate { grid-column: 1; grid-row: 1; }
+  .mf-type  { grid-column: 2; grid-row: 1; }
+  .mf-ki-icon { grid-column: 3; grid-row: 1; }
+  .mf-desc  { grid-column: 1 / 3; grid-row: 2; }
+  .mf-date  { grid-column: 3; grid-row: 2; text-align: right; }
+
+  .mech-overdue-row {
+    grid-template-columns: 90px 1fr;
+    grid-template-rows: auto auto;
+    gap: 0.25rem 0.75rem;
+  }
+  .mor-plate { grid-column: 1; grid-row: 1; }
+  .mor-name  { grid-column: 2; grid-row: 1; }
+  .mor-type  { grid-column: 1; grid-row: 2; }
+  .mor-days  { grid-column: 2; grid-row: 2; text-align: right; }
+
+  .mech-alert-row {
+    grid-template-columns: 90px 1fr;
+    grid-template-rows: auto auto;
+    gap: 0.25rem 0.75rem;
+  }
+  .mar-plate  { grid-column: 1; grid-row: 1; }
+  .mar-type   { grid-column: 2; grid-row: 1; }
+  .mar-detail { grid-column: 1 / -1; grid-row: 2; }
+  .mar-date   { display: none; }
+
+  .mech-mileage-row,
+  .mech-mileage-row--done {
+    grid-template-columns: 90px 1fr;
+    grid-template-rows: auto auto;
+    gap: 0.25rem 0.75rem;
+  }
+}
