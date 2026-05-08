@@ -8,12 +8,32 @@ import qrcode from 'qrcode-generator';
 let garageElements = {};
 
 // ============================================================
+// Load garage HTML content
+// ============================================================
+async function loadGarageHTML() {
+    try {
+        const response = await fetch('./components/garage/garage.html');
+        const html = await response.text();
+        const container = document.getElementById('garage-container');
+        if (container) {
+            container.innerHTML = html;
+        }
+    } catch (error) {
+        console.error('Error loading garage HTML:', error);
+        const container = document.getElementById('garage-container');
+        if (container) {
+            container.innerHTML = '<div class="error">Failed to load garage dashboard</div>';
+        }
+    }
+}
+
+// ============================================================
 // Initialize garage view
 // ============================================================
-export function initGarageView() {
+export async function initGarageView() {
     console.log('Initializing garage view');
     
-    // Initialize garage functionality
+    await loadGarageHTML();
     setupGarageTabs();
     setupGarageModals();
     setupGarageEventListeners();
