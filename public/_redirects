@@ -1,2 +1,10 @@
-# Single Page Application routing
+# Single Page Application routing - exclude static assets
 /*    /index.html   200
+!/*.css    -   200
+!/*.js     -   200
+!/*.png    -   200
+!/*.jpg    -   200
+!/*.jpeg    -   200
+!/*.gif     -   200
+!/*.svg     -   200
+!/*.ico     -   200
