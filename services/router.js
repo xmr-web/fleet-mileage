@@ -130,8 +130,7 @@ export class Router {
             });
         });
         console.log('=== SETUP NAVIGATION END ===');
-    }
-
+        
         // Handle browser back/forward
         window.addEventListener('popstate', () => {
             const newRole = this.getCurrentRoute();
