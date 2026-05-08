@@ -95,13 +95,17 @@ export class Router {
 
         // Handle browser back/forward
         window.addEventListener('popstate', () => {
-            this.showView(this.getCurrentRoute());
+            const newRole = this.getCurrentRoute();
+            this.showView(newRole);
+            this.initializeComponents();
         });
     }
 
     navigateTo(route) {
         window.history.pushState({}, '', route);
-        this.showView(this.getCurrentRoute());
+        const newRole = this.getCurrentRoute();
+        this.showView(newRole);
+        this.initializeComponents();
     }
 
     updateNavigation(activeRole) {
