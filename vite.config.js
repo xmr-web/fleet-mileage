@@ -10,6 +10,7 @@ export default defineConfig({
         knownIssues: resolve(__dirname, 'known-issues.html'),
         admin:       resolve(__dirname, 'admin/index.html'),
         checks:      resolve(__dirname, 'admin/checks.html'),
+        mechanic:    resolve(__dirname, 'admin/mechanic.html'),
       },
     },
   },

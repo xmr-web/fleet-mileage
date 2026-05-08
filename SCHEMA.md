@@ -72,30 +72,24 @@ RLS: anon INSERT + anon SELECT, authenticated full access.
 | reported_at | timestamptz | |
 | driver_name | text | Optional — supplied by driver |
 | description | text | Auto-generated from fault type + detail selections |
-| fault_type | text | 'bulb', 'adblue', 'tyre', 'windscreen', 'damage', 'other' |
+| fault_type | text | 'bulb', 'adblue', 'tyre', 'windscreen', 'damage', 'other', 'admin_alert' |
 | severity | text | 'low', 'normal', 'high', 'critical' |
-| photo_url | text | Supabase Storage public URL (fault-photos bucket) |
+| photo_url | text | Supabase Storage path within `fault-photos` bucket (private — requires signed URL) |
 | damage_location | jsonb | {x, y, view} — percentage position on SVG diagram |
 | status | text | 'open', 'in_progress', 'resolved' |
 | resolved_at | timestamptz | |
 | mechanic_notes | text | |
+| is_known_issue | boolean | Default false. Mechanic toggles true to surface fault on driver Known Issues screen. |
 
-RLS: anon INSERT only, authenticated full access.
+RLS: anon INSERT, anon SELECT where `is_known_issue = true AND status != 'resolved'` (driver known issues screen), authenticated full access.
+
+**`set_fault_known_issue(fault_id uuid, flag boolean)`** — SECURITY DEFINER RPC function. Allows anon callers (mechanic dashboard) to toggle `is_known_issue` without granting blanket anon UPDATE on the table. GRANT EXECUTE to anon.
 
 ---
 
-### `public.known_issues` *(exists — created 2026-04-29)*
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | PK |
-| vehicle_id | text | FK → vehicles.id |
-| description | text | The issue note shown to drivers |
-| added_by | text | Name of admin/mechanic who added it |
-| added_at | timestamptz | Default now() |
-| resolved | boolean | Default false — false = visible to drivers |
-| resolved_at | timestamptz | Nullable |
+### `public.known_issues` *(dropped 2026-05-06)*
 
-RLS: anon SELECT where `resolved = false` only. Authenticated full access.
+Replaced by `is_known_issue` boolean flag on `faults`. Drivers now see `faults` where `is_known_issue = true AND status != 'resolved'` for their vehicle. The mechanic dashboard toggles this flag. Previously a separate table required manual duplication of fault data into known issues.
 
 ---
 
@@ -308,8 +302,7 @@ Inserted by `send-mileage-complete-email` edge function once all vehicles for th
 |---|---|---|---|---|
 | vehicles | ✓ | — | ✓ (active only) | anon UPDATE added 2026-05-04 for Vehicle Out feature |
 | mileage_log | ✓ | ✓ | — | |
-| faults | — | ✓ | — | Admin reads via authenticated role |
-| known_issues | ✓ (resolved=false) | — | — | |
+| faults | ✓ (is_known_issue=true, status!=resolved) | ✓ | — | anon SELECT for driver known issues screen; mechanic uses set_fault_known_issue() RPC to toggle flag |
 | maintenance_log | ✓ | ✓ | — | |
 | task_rules | ✓ | — | ✓ | Admin adjusts intervals |
 | vehicle_tyre_specs | ✓ | — | — | Populated via Supabase dashboard only |
@@ -339,3 +332,4 @@ Inserted by `send-mileage-complete-email` edge function once all vehicles for th
 | 20260505xxxxxx | create_vehicle_tyre_specs | 2026-05-05 | vehicle_tyre_specs table with anon SELECT RLS |
 | 20260505xxxxxx | seed_maintenance_alert_thresholds | 2026-05-05 | tyre_depth_alert_mm = 3.0 added to app_settings |
 | 20260505xxxxxx | drop_legacy_tables_rebuild_vehicle_status | 2026-05-05 | Dropped todos, cleans, inspections; rebuilt vehicle_status view against maintenance_log |
+| known_issues_to_faults_flag | known_issues_to_faults_flag | 2026-05-06 | Added is_known_issue boolean to faults; dropped known_issues table; added anon SELECT policy on faults (known issues only); added set_fault_known_issue() RPC function |
