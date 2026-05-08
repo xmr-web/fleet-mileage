@@ -27,7 +27,69 @@ A mobile-first fleet management platform built around QR codes. Each vehicle get
 - Known issues screen shows active fleet-team notes for that vehicle (e.g. "rear wiper not working") to prevent duplicate fault reports
 - Known issues are managed by admin/mechanics from the dashboard
 
-**Completed (2026-05-05):**
+### Stage 2 — Fleet management dashboard *(complete ✓)*
+- Admin interface for vehicle management, QR code generation, and oversight
+- Separate views for garage assistant and fleet mechanic
+- Vehicle status tracking (in/out/needs service)
+- Bulk operations and reporting
+
+### Stage 3 — Driver mobile enhancements *(planned)*
+- Enhanced offline support
+- Photo attachments for fault reports
+- Performance analytics and feedback
+- Push notifications for critical alerts
+
+### Stage 4 — Fleet manager *(planned)*
+- Vehicle booking system
+- Driver performance reports
+- Maintenance scheduling
+- Cost tracking and analytics
+
+---
+
+## Architecture Overview
+
+### **New Modular Structure (2026-05-08):**
+```
+fleet-mileage/
+├── index.html                    # Unified entry point with routing
+├── services/                     # Shared backend services
+│   ├── supabase.js            # Database operations
+│   └── router.js              # Role-based routing
+├── components/                    # Role-based UI components
+│   ├── driver/                 # QR code vehicle access
+│   │   ├── driver.js
+│   │   └── driver.html
+│   ├── garage/                 # Garage assistant
+│   │   ├── garage.js
+│   │   ├── garage.html
+│   │   └── garage.css
+│   ├── mechanic/               # Fleet mechanic
+│   │   ├── mechanic.js
+│   │   ├── mechanic.html
+│   │   └── mechanic.css
+│   └── manager/               # Fleet manager (future)
+│       ├── manager.js
+│       └── manager.html
+├── style.css                     # Global styles
+└── supabase.config.js            # Database configuration
+```
+
+### **Key Benefits:**
+- **Single Entry Point**: One `index.html` handles all roles
+- **Role Separation**: Clear boundaries between driver/garage/mechanic/manager
+- **Shared Services**: Centralized database operations via `services/supabase.js`
+- **Clean Routing**: URL-based role switching (`/garage`, `/mechanic`, `/manager`)
+- **Modular Components**: Each role has isolated JavaScript and HTML
+- **Maintainable**: Easy to extend and debug individual features
+
+### **URL Structure:**
+- `/?vehicle=VH001` → Driver view (QR code access)
+- `/garage` → Garage assistant dashboard
+- `/mechanic` → Fleet mechanic dashboard
+- `/manager` → Fleet manager (future)
+
+**Completed (2026-05-08):**
 - `alert_thresholds` table created and seeded in Supabase with 7 default thresholds
 - `checks.html`, `checks.css`, `checks.js` created in `/admin/` — garage assistant check forms, fully working
 - `vite.config.js` updated to include `checks` as a named entry point

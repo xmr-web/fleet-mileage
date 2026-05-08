@@ -1,0 +1,67 @@
+<!-- Fleet Mechanic View Content -->
+<div class="mechanic-tab-content" id="dashboard-content">
+    <div class="tab-header">
+        <h2>Mechanic Dashboard</h2>
+        <div class="header-actions">
+            <button class="btn btn-sm" onclick="refreshDashboard()">Refresh</button>
+            <select class="filter-select" id="alert-filter">
+                <option value="">All Alerts</option>
+                <option value="critical">Critical Only</option>
+                <option value="warning">Warning Only</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="mechanic-stats" id="mechanic-stats">
+        <!-- Stats will be loaded here -->
+    </div>
+</div>
+
+<div class="mechanic-tab-content" id="mileage-content" style="display: none;">
+    <div class="tab-header">
+        <h2>All Mileage Entries</h2>
+        <div class="header-actions">
+            <select class="filter-select" id="mechanic-vehicle-filter">
+                <option value="">All Vehicles</option>
+            </select>
+            <input type="date" class="date-filter" id="mechanic-date-filter">
+            <button class="btn btn-sm" onclick="exportMileageReport()">Export</button>
+        </div>
+    </div>
+    <div class="mileage-list" id="recent-mileage">
+        <!-- Recent mileage will be loaded here -->
+    </div>
+</div>
+
+<div class="mechanic-tab-content" id="faults-content" style="display: none;">
+    <div class="tab-header">
+        <h2>Fault Reports</h2>
+        <div class="header-actions">
+            <select class="filter-select" id="fault-vehicle-filter">
+                <option value="">All Vehicles</option>
+            </select>
+            <select class="filter-select" id="fault-status-filter">
+                <option value="">All Status</option>
+                <option value="open">Open</option>
+                <option value="resolved">Resolved</option>
+            </select>
+            <button class="btn btn-sm" onclick="exportFaultReport()">Export</button>
+        </div>
+    </div>
+    <div class="fault-list" id="fault-reports">
+        <!-- Fault reports will be loaded here -->
+    </div>
+</div>
+
+<div class="mechanic-tab-content" id="alerts-content" style="display: none;">
+    <div class="tab-header">
+        <h2>System Alerts</h2>
+        <div class="header-actions">
+            <button class="btn btn-sm" onclick="markAllAlertsRead()">Mark All Read</button>
+            <button class="btn btn-sm" onclick="createCustomAlert()">Create Alert</button>
+        </div>
+    </div>
+    <div class="alerts-list" id="alerts">
+        <!-- Alerts will be loaded here -->
+    </div>
+</div>

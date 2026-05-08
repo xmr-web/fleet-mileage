@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Fleet — Vehicle Menu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Loading screen -->
+  <div id="screen-loading" class="screen active">
+    <div class="loader-ring"></div>
+    <p class="loader-text">Loading vehicle…</p>
+  </div>
+
+  <!-- Error screen -->
+  <div id="screen-error" class="screen">
+    <div class="error-icon">!</div>
+    <h2>Vehicle Not Found</h2>
+    <p id="error-msg">This QR code does not match any vehicle in the system.</p>
+  </div>
+
+  <!-- Choice screen -->
+  <div id="screen-choice" class="screen">
+    <div class="vehicle-photo-wrap">
+      <img id="vehicle-photo" src="" alt="Vehicle" />
+      <div class="photo-overlay"></div>
+      <div class="vehicle-badge">
+        <span class="vehicle-id" id="vehicle-id-display"></span>
+        <span class="vehicle-name" id="vehicle-name-display"></span>
+      </div>
+    </div>
+
+    <div class="card choice-card">
+      <p class="choice-prompt">What would you like to do?</p>
+
+      <div class="choice-buttons">
+
+        <button class="choice-btn choice-btn--mileage" id="btn-mileage">
+          <span class="choice-icon">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="2"/>
+              <path d="M16 9v7l4 2.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M8 16h1M23 16h1M16 8v1M16 23v1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="choice-text">
+            <span class="choice-label">Submit Mileage</span>
+            <span class="choice-sub">Record today's odometer reading</span>
+          </span>
+          <span class="choice-arrow">›</span>
+        </button>
+
+        <button class="choice-btn choice-btn--fault" id="btn-fault">
+          <span class="choice-icon">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M16 4L29 26H3L16 4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M16 13v6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="16" cy="22.5" r="1.25" fill="currentColor"/>
+            </svg>
+          </span>
+          <span class="choice-text">
+            <span class="choice-label">Report a Fault</span>
+            <span class="choice-sub">Log a problem with this vehicle</span>
+          </span>
+          <span class="choice-arrow">›</span>
+        </button>
+
+        <button class="choice-btn choice-btn--issues" id="btn-issues">
+          <span class="choice-icon">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="2"/>
+              <path d="M16 11v1.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M16 16v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="choice-text">
+            <span class="choice-label">Known Issues</span>
+            <span class="choice-sub">See current faults being tracked</span>
+          </span>
+          <span class="issues-count" id="issues-count" style="display:none"></span>
+          <span class="choice-arrow">›</span>
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Mileage screen -->
+  <div id="screen-app" class="screen">
+    <div class="screen-back-bar">
+      <button class="back-btn" id="back-btn-mileage">← Back</button>
+      <span class="back-title">Submit Mileage</span>
+    </div>
+
+    <div class="vehicle-photo-wrap vehicle-photo-wrap--small">
+      <img id="vehicle-photo-2" src="" alt="Vehicle" />
+      <div class="photo-overlay"></div>
+      <div class="vehicle-badge">
+        <span class="vehicle-id" id="vehicle-id-display-2"></span>
+        <span class="vehicle-name" id="vehicle-name-display-2"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="prev-mileage-row">
+        <span class="label">Last recorded mileage</span>
+        <span class="prev-value" id="prev-mileage">—</span>
+      </div>
+
+      <div class="input-block">
+        <label class="label" for="mileage-input">Enter current mileage</label>
+        <div class="input-wrap">
+          <input
+            type="number"
+            id="mileage-input"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            placeholder="0"
+            min="0"
+            autocomplete="off"
+          />
+          <span class="unit">mi</span>
+        </div>
+        <p class="validation-msg" id="validation-msg"></p>
+      </div>
+
+      <button class="confirm-btn" id="confirm-btn">
+        <span id="btn-label">Confirm Mileage</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mileage success screen -->
+  <div id="screen-success" class="screen">
+    <div class="success-icon">
+      <svg viewBox="0 0 52 52" fill="none">
+        <circle cx="26" cy="26" r="25" stroke="currentColor" stroke-width="2"/>
+        <path d="M14 26l8 8 16-16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h2>Mileage Logged</h2>
+    <p id="success-msg">Thank you. Your entry has been recorded.</p>
+    <div class="success-detail" id="success-detail"></div>
+    <button class="back-btn-plain" id="success-back-btn">← Back to menu</button>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

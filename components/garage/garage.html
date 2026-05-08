@@ -1,0 +1,79 @@
+<!-- Garage Assistant View Content -->
+<div class="tab-content" id="vehicles-content">
+    <div class="tab-header">
+        <h2>Vehicle Management</h2>
+        <div class="header-actions">
+            <button class="btn btn-sm" onclick="openAddVehicleModal()">+ Add Vehicle</button>
+            <div class="toggle-group">
+                <label>
+                    <input type="checkbox" id="done-toggle" checked>
+                    <span>Show Done</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="out-toggle">
+                    <span>Show Out Only</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="vehicles-grid" id="vehicles-grid">
+        <!-- Vehicles will be loaded here -->
+    </div>
+
+    <!-- Entry Modal -->
+    <div class="modal" id="entry-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-vehicle-name">Enter Mileage</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="vehicle-info">
+                    <span class="vehicle-id" id="modal-vehicle-id"></span>
+                    <span class="vehicle-name" id="modal-vehicle-name"></span>
+                </div>
+                <div class="mileage-input-group">
+                    <label>Last Recorded Mileage:</label>
+                    <span class="prev-mileage" id="modal-last-mileage">—</span>
+                </div>
+                <div class="mileage-input-group">
+                    <label>Current Mileage:</label>
+                    <div class="input-wrap">
+                        <input type="number" id="modal-mileage-input" min="0" autocomplete="off">
+                        <span class="unit">mi</span>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeModals()">Cancel</button>
+                    <button class="btn" onclick="submitMileageEntry()">Save Entry</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="tab-content" id="mileage-content" style="display: none;">
+    <div class="tab-header">
+        <h2>Mileage Entries</h2>
+        <div class="header-actions">
+            <select id="vehicle-filter" class="filter-select">
+                <option value="">All Vehicles</option>
+            </select>
+            <button class="btn btn-sm" onclick="exportMileageData()">Export</button>
+        </div>
+    </div>
+    <div class="mileage-list" id="garage-mileage-list">
+        <!-- Mileage entries will be loaded here -->
+    </div>
+</div>
+
+<div class="tab-content" id="qr-content" style="display: none;">
+    <div class="tab-header">
+        <h2>QR Code Generation</h2>
+        <p>Generate QR codes for vehicle access</p>
+    </div>
+    <div class="qr-grid" id="qr-grid">
+        <!-- QR codes will be generated here -->
+    </div>
+</div>
