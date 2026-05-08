@@ -7,11 +7,29 @@ import { getAllVehicles, getMileage, getAllFaultReports, getAlerts, createAlert 
 let mechanicElements = {};
 
 // ============================================================
+// Load mechanic HTML content
+// ============================================================
+async function loadMechanicHTML() {
+    try {
+        const response = await fetch('./components/mechanic/mechanic.html');
+        const html = await response.text();
+        const container = document.getElementById('mechanic-container');
+        if (container) {
+            container.innerHTML = html;
+        }
+    } catch (error) {
+        console.error('Error loading mechanic HTML:', error);
+        showMechanicError('Failed to load mechanic dashboard');
+    }
+}
+
+// ============================================================
 // Initialize mechanic view
 // ============================================================
-export function initMechanicView() {
+export async function initMechanicView() {
     console.log('Initializing mechanic view');
     
+    await loadMechanicHTML();
     setupMechanicTabs();
     loadMechanicDashboard();
 }
